@@ -1,22 +1,52 @@
 <template>
-  <div class="payments">
-    <h1>Payments</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Student</th>
-          <th>Amount</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="payment in payments" :key="payment.id">
-          <td>{{ payment.student }}</td>
-          <td>{{ payment.amount }}</td>
-          <td>{{ payment.payment_date }}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="view-container">
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">Payments</h1>
+        <p class="view-subtitle">Review incoming transactions and student bills</p>
+      </div>
+      <div class="badge-count" v-if="payments.length">{{ totalPayments }} UZS total</div>
+    </div>
+
+    <!-- Error/Warning Banner -->
+    <div v-if="error" class="info-banner">
+      <span>{{ error }}</span>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="payment in payments" :key="payment.id" class="table-row">
+              <td class="font-mono text-muted">#{{ payment.id }}</td>
+              <td class="font-semibold">{{ getStudentName(payment.student) }}</td>
+              <td class="font-mono font-semibold text-green">{{ formatPrice(payment.amount) }} UZS</td>
+              <td>{{ formatDate(payment.payment_date) }}</td>
+              <td>{{ payment.description || '-' }}</td>
+            </tr>
+            <tr v-if="!payments.length && !loading">
+              <td colspan="5" class="empty-state">No payments found.</td>
+            </tr>
+            <tr v-if="loading">
+              <td colspan="5" class="loading-state">
+                <div class="spinner"></div>
+                <span>Loading payments...</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -24,23 +54,74 @@
 import axios from 'axios'
 
 export default {
+  name: 'Payments',
   data() {
     return {
-      payments: []
+      payments: [],
+      students: [],
+      loading: false,
+      error: null
+    }
+  },
+  computed: {
+    totalPayments() {
+      const sum = this.payments.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0)
+      return this.formatPrice(sum)
     }
   },
   mounted() {
-    this.fetchPayments()
+    this.fetchData()
   },
   methods: {
-    async fetchPayments() {
+    async fetchData() {
+      this.loading = true
+      this.error = null
       try {
-        const response = await axios.get('http://localhost:8000/api/payments/')
-        this.payments = response.data
-      } catch (error) {
-        console.error('Error fetching payments:', error)
+        const [paymentsRes, studentsRes] = await Promise.all([
+          axios.get('http://localhost:8000/api/payments/'),
+          axios.get('http://localhost:8000/api/students/')
+        ])
+        this.payments = paymentsRes.data
+        this.students = studentsRes.data
+        this.loading = false
+      } catch (err) {
+        console.error('Error fetching payments:', err)
+        this.error = 'Failed to load payments details from backend.'
+        this.loading = false
+      }
+    },
+    getStudentName(studentId) {
+      const student = this.students.find(s => s.id === studentId)
+      return student ? student.full_name : `Student #${studentId}`
+    },
+    formatPrice(price) {
+      if (!price && price !== 0) return '0'
+      const val = Math.round(parseFloat(price))
+      return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '-'
+      try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch (e) {
+        return dateStr
       }
     }
   }
 }
 </script>
+
+<style scoped>
+@import '../assets/views.css';
+
+.text-green {
+  color: #16a34a !important;
+}
+</style>

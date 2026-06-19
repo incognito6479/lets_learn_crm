@@ -4,39 +4,39 @@ from .models import Branch, User, Student, Room, Course, Group, Enrollment, Paym
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Branch
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'role', 'branch', 'first_name', 'last_name')
+        fields = ('id', 'username', 'phone_number', 'role', 'branch', 'first_name', 'last_name', 'is_active')
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
-        fields = '__all__'
+        exclude = ('created_at', 'is_active')

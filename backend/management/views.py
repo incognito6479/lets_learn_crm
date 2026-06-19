@@ -6,34 +6,45 @@ from .serializers import (
     EnrollmentSerializer, PaymentSerializer
 )
 
-class BranchViewSet(viewsets.ModelViewSet):
+class SoftDeleteModelViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        return self.queryset.filter(is_active=True)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+class BranchViewSet(SoftDeleteModelViewSet):
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(SoftDeleteModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-class StudentViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        return self.queryset
+
+class StudentViewSet(SoftDeleteModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
 
-class RoomViewSet(viewsets.ModelViewSet):
+class RoomViewSet(SoftDeleteModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
 
-class CourseViewSet(viewsets.ModelViewSet):
+class CourseViewSet(SoftDeleteModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(SoftDeleteModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
 
-class EnrollmentViewSet(viewsets.ModelViewSet):
+class EnrollmentViewSet(SoftDeleteModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
 
-class PaymentViewSet(viewsets.ModelViewSet):
+class PaymentViewSet(SoftDeleteModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
