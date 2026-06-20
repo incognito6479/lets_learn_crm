@@ -65,8 +65,7 @@
               <th>Location (Room)</th>
               <th>Branch</th>
               <th>Status</th>
-              <th>Schedule</th>
-              <th>Duration</th>
+              <th>Price</th>
               <th style="text-align: right;">Actions</th>
             </tr>
           </thead>
@@ -83,13 +82,7 @@
                   {{ group.status || 'enrolled' }}
                 </span>
               </td>
-              <td>
-                <div class="schedule-cell">
-                  <div class="starts-time">{{ formatTime(group.starts_at) }}</div>
-                  <div class="started-date text-muted">Since {{ formatDate(group.started_at) }}</div>
-                </div>
-              </td>
-              <td class="font-mono">{{ group.duration }} mins</td>
+              <td class="font-mono font-semibold">{{ formatPrice(group.price) }} UZS</td>
               <td class="actions-cell">
                 <button @click.stop="navigateToGroup(group.id)" class="btn-icon" title="View Group Details">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -114,10 +107,10 @@
               </td>
             </tr>
             <tr v-if="!filteredGroups.length && !loading">
-              <td colspan="10" class="empty-state">No groups found.</td>
+              <td colspan="9" class="empty-state">No groups found.</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="10" class="loading-state">
+              <td colspan="9" class="loading-state">
                 <div class="spinner"></div>
                 <span>Loading groups...</span>
               </td>
@@ -178,7 +171,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label for="groupCourse" class="form-label">Course</label>
-                <select id="groupCourse" v-model="form.course" required class="form-input">
+                <select id="groupCourse" v-model="form.course" required class="form-input" @change="handleCourseChange">
                   <option value="" disabled>Select Course...</option>
                   <option v-for="course in courses" :key="course.id" :value="course.id">
                     {{ course.name }}
@@ -221,7 +214,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label for="duration" class="form-label">Duration (Minutes)</label>
                 <input
@@ -231,6 +224,19 @@
                   required
                   min="1"
                   placeholder="e.g. 90"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="groupPrice" class="form-label">Price (UZS)</label>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  id="groupPrice"
+                  :value="form.price"
+                  @input="formatInputPrice"
+                  required
                   class="form-input"
                 />
               </div>
@@ -303,6 +309,7 @@ export default {
         started_at: '',
         starts_at: '',
         duration: 90,
+        price: '',
         status: 'ongoing',
         description: ''
       }
@@ -396,6 +403,15 @@ export default {
         return dateStr
       }
     },
+    handleCourseChange() {
+      if (this.form.course) {
+        const selectedCourse = this.courses.find(c => c.id === this.form.course)
+        if (selectedCourse && selectedCourse.price) {
+          const digits = Math.round(parseFloat(selectedCourse.price)).toString()
+          this.form.price = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        }
+      }
+    },
     openCreateModal() {
       this.isEdit = false
       this.form = {
@@ -408,6 +424,7 @@ export default {
         started_at: '',
         starts_at: '',
         duration: 90,
+        price: '',
         status: 'ongoing',
         description: ''
       }
@@ -425,23 +442,56 @@ export default {
         started_at: group.started_at,
         starts_at: group.starts_at ? group.starts_at.slice(0, 5) : '',
         duration: group.duration,
+        price: group.price,
         status: group.status || 'ongoing',
         description: group.description || ''
+      }
+      if (this.form.price) {
+        const digits = Math.round(parseFloat(this.form.price)).toString()
+        this.form.price = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      } else {
+        this.form.price = ''
       }
       this.showModal = true
     },
     closeModal() {
       this.showModal = false
     },
+    formatInputPrice(event) {
+      const value = event.target.value
+      const selectionStart = event.target.selectionStart
+      const oldLength = value.length
+
+      const digits = value.replace(/\D/g, '')
+      const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      
+      this.form.price = formatted
+      
+      this.$nextTick(() => {
+        if (event.target) {
+          const newLength = formatted.length
+          const delta = newLength - oldLength
+          const newCursorPos = selectionStart + delta
+          event.target.setSelectionRange(newCursorPos, newCursorPos)
+        }
+      })
+    },
     async saveGroup() {
       this.submitting = true
       try {
+        const rawPrice = String(this.form.price).replace(/\s/g, '')
+        const priceVal = parseFloat(rawPrice || 0).toFixed(2)
+        const payload = {
+          ...this.form,
+          price: priceVal
+        }
+
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/groups/${this.form.id}/`, this.form)
+          await axios.put(`http://localhost:8000/api/groups/${this.form.id}/`, payload)
           this.closeModal()
           this.fetchData()
         } else {
-          const response = await axios.post('http://localhost:8000/api/groups/', this.form)
+          const response = await axios.post('http://localhost:8000/api/groups/', payload)
           this.closeModal()
           const newGroupId = response.data.id
           this.$router.push(`/groups/${newGroupId}`)
@@ -467,6 +517,11 @@ export default {
     },
     navigateToGroup(id) {
       this.$router.push(`/groups/${id}`)
+    },
+    formatPrice(price) {
+      if (!price && price !== 0) return '0'
+      const val = Math.round(parseFloat(price))
+      return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
     }
   }
 }

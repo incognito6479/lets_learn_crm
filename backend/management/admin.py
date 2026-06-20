@@ -4,10 +4,13 @@ from .models import Branch, User, Student, Room, Course, Group, Enrollment, Paym
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (
-        ('Custom Fields', {'fields': ('role', 'branch')}),
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'phone_number')}),
+        ('Custom Fields', {'fields': ('role', 'branch', 'created_at')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
-    list_display = ('username', 'email', 'role', 'branch', 'is_staff')
 
 admin.site.register(Branch)
 admin.site.register(Student)

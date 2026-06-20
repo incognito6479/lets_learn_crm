@@ -74,6 +74,7 @@ class Group(BaseModel):
     duration = models.IntegerField(help_text="Duration in minutes")
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.name
@@ -84,20 +85,28 @@ class Enrollment(BaseModel):
         ('finished', 'Finished'),
         ('dropped', 'Dropped'),
     )
+    PAYMENT_STATUS_CHOICES = (
+        ('paid', 'Paid'),
+        ('debt', 'Debt'),
+    )
     student = models.ForeignKey(Student, on_delete=models.PROTECT)
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt')
 
     class Meta:
         unique_together = ('student', 'group')
+    
+    def __str__(self):
+        return f"{self.student.full_name} - {self.group.name}"
 
 class Payment(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
     student = models.ForeignKey(Student, on_delete=models.PROTECT)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
-    payment_date = models.DateTimeField(auto_now_add=True)
+    payment_date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.student.full_name} - {self.amount}"
+        return f"{self.student.full_name} - {self.group.name} - {self.amount}"

@@ -31,63 +31,7 @@
 
     <!-- Layout Grid -->
     <div class="detail-grid" v-if="group">
-      <!-- Left Main Column: Students Roster -->
-      <div class="main-column">
-        <div class="table-card">
-          <div class="table-header-bar">
-            <h2 class="card-section-title">Enrolled Students</h2>
-            <button @click="openEnrollModal" class="btn btn-primary btn-sm">
-              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Enroll a Student
-            </button>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Full Name</th>
-                  <th>Primary Phone</th>
-                  <th>Enrollment Status</th>
-                  <th>Enrollment Date</th>
-                  <th style="text-align: right;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="enrolled in enrolledStudents" :key="enrolled.enrollmentId" class="table-row">
-                  <td class="font-mono text-muted">#{{ enrolled.id }}</td>
-                  <td class="font-semibold">{{ enrolled.full_name }}</td>
-                  <td>{{ enrolled.phone1 }}</td>
-                  <td>
-                    <span :class="['status-badge', enrolled.status || 'enrolled']">
-                      {{ enrolled.status || 'enrolled' }}
-                    </span>
-                  </td>
-                  <td>{{ formatDate(enrolled.date) }}</td>
-                  <td class="actions-cell">
-                    <button @click="unenrollStudent(enrolled)" class="btn-icon btn-icon-danger" title="Unenroll Student">
-                      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!enrolledStudents.length">
-                  <td colspan="6" class="empty-state">No students currently enrolled in this group.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Side Column: Group Metadata -->
+      <!-- Top Section: Group Metadata -->
       <div class="sidebar-column">
         <div class="info-card">
           <h3 class="info-card-title">Group Details</h3>
@@ -120,10 +64,76 @@
               <span class="info-label">Duration</span>
               <span class="info-value">{{ group.duration }} minutes</span>
             </div>
+            <div class="info-item">
+              <span class="info-label">Price</span>
+              <span class="info-value font-mono font-semibold">{{ formatPrice(group.price) }} UZS</span>
+            </div>
           </div>
           <div class="info-description-box" v-if="group.description">
             <span class="info-label" style="display: block; margin-bottom: 0.4rem;">Description</span>
             <p class="description-text">{{ group.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Students Roster -->
+      <div class="main-column">
+        <div class="table-card">
+          <div class="table-header-bar">
+            <h2 class="card-section-title">Enrolled Students</h2>
+            <button @click="openEnrollModal" class="btn btn-primary btn-sm">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Enroll a Student
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Primary Phone</th>
+                  <th>Enrollment Status</th>
+                  <th>Payment Status</th>
+                  <th>Enrollment Date</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="enrolled in enrolledStudents" :key="enrolled.enrollmentId" class="table-row">
+                  <td class="font-mono text-muted">#{{ enrolled.id }}</td>
+                  <td class="font-semibold">{{ enrolled.full_name }}</td>
+                  <td>{{ enrolled.phone1 }}</td>
+                  <td>
+                    <span :class="['status-badge', enrolled.status || 'enrolled']">
+                      {{ enrolled.status || 'enrolled' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span :class="['status-badge', enrolled.payment_status || 'debt']">
+                      {{ enrolled.payment_status || 'debt' }}
+                    </span>
+                  </td>
+                  <td>{{ formatDate(enrolled.date) }}</td>
+                  <td class="actions-cell">
+                    <button @click="unenrollStudent(enrolled)" class="btn-icon btn-icon-danger" title="Unenroll Student">
+                      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!enrolledStudents.length">
+                  <td colspan="7" class="empty-state">No students currently enrolled in this group.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -232,6 +242,7 @@ export default {
         return {
           enrollmentId: e.id,
           status: e.status,
+          payment_status: e.payment_status,
           date: e.date,
           studentId: e.student,
           ...studentInfo
@@ -319,6 +330,11 @@ export default {
         return dateStr
       }
     },
+    formatPrice(price) {
+      if (!price && price !== 0) return '0'
+      const val = Math.round(parseFloat(price))
+      return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    },
     openEnrollModal() {
       this.selectedStudentIds = []
       this.enrollSearchQuery = ''
@@ -335,7 +351,8 @@ export default {
           return axios.post('http://localhost:8000/api/enrollments/', {
             student: studentId,
             group: this.group.id,
-            status: 'enrolled'
+            status: 'enrolled',
+            payment_status: 'debt'
           })
         })
 
@@ -370,16 +387,9 @@ export default {
 
 /* Layout Grid */
 .detail-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Back Button */
@@ -426,17 +436,17 @@ export default {
 }
 
 .info-details-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
 }
 
 .info-item {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: flex-start;
   font-size: 0.9rem;
-  gap: 1rem;
+  gap: 0.35rem;
 }
 
 .info-label {
@@ -449,7 +459,7 @@ export default {
 
 .info-value {
   color: #334155;
-  text-align: right;
+  text-align: left;
 }
 
 .info-description-box {
@@ -563,5 +573,15 @@ export default {
 .status-badge.finished {
   background-color: #f1f5f9;
   color: #475569;
+}
+
+.status-badge.paid {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.debt {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 </style>

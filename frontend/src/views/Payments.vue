@@ -21,6 +21,7 @@
             <tr>
               <th>ID</th>
               <th>Student</th>
+              <th>Group</th>
               <th>Amount</th>
               <th>Date</th>
               <th>Description</th>
@@ -30,15 +31,16 @@
             <tr v-for="payment in payments" :key="payment.id" class="table-row">
               <td class="font-mono text-muted">#{{ payment.id }}</td>
               <td class="font-semibold">{{ getStudentName(payment.student) }}</td>
+              <td>{{ getGroupName(payment.group) }}</td>
               <td class="font-mono font-semibold text-green">{{ formatPrice(payment.amount) }} UZS</td>
               <td>{{ formatDate(payment.payment_date) }}</td>
               <td>{{ payment.description || '-' }}</td>
             </tr>
             <tr v-if="!payments.length && !loading">
-              <td colspan="5" class="empty-state">No payments found.</td>
+              <td colspan="6" class="empty-state">No payments found.</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="5" class="loading-state">
+              <td colspan="6" class="loading-state">
                 <div class="spinner"></div>
                 <span>Loading payments...</span>
               </td>
@@ -59,6 +61,7 @@ export default {
     return {
       payments: [],
       students: [],
+      groups: [],
       loading: false,
       error: null
     }
@@ -77,12 +80,14 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [paymentsRes, studentsRes] = await Promise.all([
+        const [paymentsRes, studentsRes, groupsRes] = await Promise.all([
           axios.get('http://localhost:8000/api/payments/'),
-          axios.get('http://localhost:8000/api/students/')
+          axios.get('http://localhost:8000/api/students/'),
+          axios.get('http://localhost:8000/api/groups/')
         ])
         this.payments = paymentsRes.data
         this.students = studentsRes.data
+        this.groups = groupsRes.data
         this.loading = false
       } catch (err) {
         console.error('Error fetching payments:', err)
@@ -93,6 +98,10 @@ export default {
     getStudentName(studentId) {
       const student = this.students.find(s => s.id === studentId)
       return student ? student.full_name : `Student #${studentId}`
+    },
+    getGroupName(groupId) {
+      const group = this.groups.find(g => g.id === groupId)
+      return group ? group.name : `Group #${groupId}`
     },
     formatPrice(price) {
       if (!price && price !== 0) return '0'
