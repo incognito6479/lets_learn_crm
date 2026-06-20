@@ -91,7 +91,7 @@ class Enrollment(BaseModel):
     )
     student = models.ForeignKey(Student, on_delete=models.PROTECT)
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.localdate)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt')
 
@@ -102,6 +102,11 @@ class Enrollment(BaseModel):
         return f"{self.student.full_name} - {self.group.name}"
 
 class Payment(BaseModel):
+    PAYMENT_METHOD_CHOICES = (
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+    )
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
     student = models.ForeignKey(Student, on_delete=models.PROTECT)
     amount = models.DecimalField(max_digits=10, decimal_places=2)

@@ -23,6 +23,7 @@
               <th>Student</th>
               <th>Group</th>
               <th>Amount</th>
+              <th>Method</th>
               <th>Date</th>
               <th>Description</th>
             </tr>
@@ -33,14 +34,19 @@
               <td class="font-semibold">{{ getStudentName(payment.student) }}</td>
               <td>{{ getGroupName(payment.group) }}</td>
               <td class="font-mono font-semibold text-green">{{ formatPrice(payment.amount) }} UZS</td>
+              <td>
+                <span :class="['status-badge', payment.payment_method || 'cash']">
+                  {{ formatMethod(payment.payment_method) }}
+                </span>
+              </td>
               <td>{{ formatDate(payment.payment_date) }}</td>
               <td>{{ payment.description || '-' }}</td>
             </tr>
             <tr v-if="!payments.length && !loading">
-              <td colspan="6" class="empty-state">No payments found.</td>
+              <td colspan="7" class="empty-state">No payments found.</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="6" class="loading-state">
+              <td colspan="7" class="loading-state">
                 <div class="spinner"></div>
                 <span>Loading payments...</span>
               </td>
@@ -122,6 +128,10 @@ export default {
       } catch (e) {
         return dateStr
       }
+    },
+    formatMethod(method) {
+      if (!method) return 'Cash'
+      return method.charAt(0).toUpperCase() + method.slice(1)
     }
   }
 }
@@ -132,5 +142,15 @@ export default {
 
 .text-green {
   color: #16a34a !important;
+}
+
+.status-badge.cash {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-badge.card {
+  background-color: #f3e8ff;
+  color: #6b21a8;
 }
 </style>

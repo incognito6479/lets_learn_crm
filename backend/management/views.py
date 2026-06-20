@@ -45,6 +45,10 @@ class EnrollmentViewSet(SoftDeleteModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
 
+    def perform_destroy(self, instance):
+        instance.status = 'dropped'
+        instance.save()
+
 class PaymentViewSet(SoftDeleteModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer

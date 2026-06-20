@@ -248,7 +248,6 @@ export default {
           axios.get('http://localhost:8000/api/users/'),
           axios.get('http://localhost:8000/api/branches/')
         ])
-        
         this.branches = branchesRes.data
         // Filter users who are teachers
         this.teachers = usersRes.data.filter(u => u.role === 'teacher')

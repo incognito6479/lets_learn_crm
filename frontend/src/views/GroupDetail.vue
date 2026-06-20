@@ -113,13 +113,28 @@
                     </span>
                   </td>
                   <td>
-                    <span :class="['status-badge', enrolled.payment_status || 'debt']">
-                      {{ enrolled.payment_status || 'debt' }}
-                    </span>
+                    <div class="payment-status-cell">
+                      <span :class="['status-badge', enrolled.payment_status || 'debt']">
+                        {{ enrolled.payment_status || 'debt' }}
+                      </span>
+                      <button
+                        v-if="(enrolled.payment_status || 'debt') === 'debt' && enrolled.status !== 'dropped'"
+                        @click="openPaymentModal(enrolled)"
+                        class="btn-pay"
+                        title="Record Payment"
+                      >
+                        Pay
+                      </button>
+                    </div>
                   </td>
                   <td>{{ formatDate(enrolled.date) }}</td>
                   <td class="actions-cell">
-                    <button @click="unenrollStudent(enrolled)" class="btn-icon btn-icon-danger" title="Unenroll Student">
+                    <button
+                      v-if="enrolled.status !== 'dropped'"
+                      @click="unenrollStudent(enrolled)"
+                      class="btn-icon btn-icon-danger"
+                      title="Unenroll Student"
+                    >
                       <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -205,6 +220,72 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirm Payment Modal -->
+    <div v-if="showPaymentModal" class="modal-backdrop" @click.self="closePaymentModal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Record Payment</h2>
+          <button @click="closePaymentModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="confirmPayment">
+          <div class="modal-body">
+            <p class="modal-instructions" style="margin-bottom: 1.25rem;">
+              Confirm payment for student <strong>{{ paymentEnrollment ? paymentEnrollment.full_name : '' }}</strong> in group <strong>{{ group.name }}</strong>.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Amount (UZS)</label>
+              <input
+                type="text"
+                inputmode="numeric"
+                id="paymentAmount"
+                :value="paymentForm.amount"
+                @input="formatPaymentInputPrice"
+                required
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Payment Method</label>
+              <select id="paymentMethod" v-model="paymentForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Description (Optional)</label>
+              <textarea
+                id="paymentDescription"
+                v-model="paymentForm.description"
+                class="form-input"
+                rows="3"
+                placeholder="e.g. Monthly tuition fee payment"
+                style="width: 100%; box-sizing: border-box; resize: vertical;"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closePaymentModal" class="btn btn-secondary">Cancel</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submittingPayment || !paymentForm.amount"
+            >
+              {{ submittingPayment ? 'Processing...' : 'Confirm Payment' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -229,7 +310,17 @@ export default {
       showEnrollModal: false,
       enrollSearchQuery: '',
       selectedStudentIds: [],
-      submittingEnrollment: false
+      submittingEnrollment: false,
+
+      // Payment modal state
+      showPaymentModal: false,
+      paymentEnrollment: null,
+      paymentForm: {
+        amount: '',
+        payment_method: 'cash',
+        description: ''
+      },
+      submittingPayment: false
     }
   },
   computed: {
@@ -367,7 +458,7 @@ export default {
       }
     },
     async unenrollStudent(enrolled) {
-      if (!confirm(`Are you sure you want to remove "${enrolled.full_name}" from this group?`)) {
+      if (!confirm(`Are you sure you want to drop "${enrolled.full_name}" from this group?`)) {
         return
       }
       try {
@@ -375,7 +466,69 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error removing student:', err)
-        alert('An error occurred while removing the student.')
+      }
+    },
+    openPaymentModal(enrolled) {
+      this.paymentEnrollment = enrolled
+      const val = Math.round(parseFloat(this.group.price || 0))
+      this.paymentForm.amount = val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      this.paymentForm.payment_method = 'cash'
+      this.paymentForm.description = ''
+      this.showPaymentModal = true
+    },
+    closePaymentModal() {
+      this.showPaymentModal = false
+      this.paymentEnrollment = null
+      this.paymentForm.amount = ''
+      this.paymentForm.payment_method = 'cash'
+      this.paymentForm.description = ''
+    },
+    formatPaymentInputPrice(event) {
+      const value = event.target.value
+      const selectionStart = event.target.selectionStart
+      const oldLength = value.length
+
+      const digits = value.replace(/\D/g, '')
+      const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      
+      this.paymentForm.amount = formatted
+      
+      this.$nextTick(() => {
+        if (event.target) {
+          const newLength = formatted.length
+          const delta = newLength - oldLength
+          const newCursorPos = selectionStart + delta
+          event.target.setSelectionRange(newCursorPos, newCursorPos)
+        }
+      })
+    },
+    async confirmPayment() {
+      this.submittingPayment = true
+      try {
+        // Update enrollment status to paid
+        await axios.patch(`http://localhost:8000/api/enrollments/${this.paymentEnrollment.enrollmentId}/`, {
+          payment_status: 'paid'
+        })
+        
+        // Create payment record
+        const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
+        const amountVal = parseFloat(rawAmount || 0)
+        
+        await axios.post('http://localhost:8000/api/payments/', {
+          group: this.group.id,
+          student: this.paymentEnrollment.studentId,
+          amount: amountVal,
+          payment_method: this.paymentForm.payment_method,
+          description: this.paymentForm.description || `Payment for group: ${this.group.name}`
+        })
+        
+        this.closePaymentModal()
+        await this.fetchData()
+      } catch (err) {
+        console.error('Error confirming payment:', err)
+        alert('An error occurred while confirming the payment.')
+      } finally {
+        this.submittingPayment = false
       }
     }
   }
@@ -583,5 +736,35 @@ export default {
 .status-badge.debt {
   background-color: #fee2e2;
   color: #991b1b;
+}
+
+.payment-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-pay {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-pay:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(79, 70, 229, 0.2);
+}
+
+.btn-pay:active {
+  transform: translateY(0);
 }
 </style>
