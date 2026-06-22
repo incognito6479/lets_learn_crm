@@ -1,0 +1,839 @@
+<template>
+  <div class="view-container">
+    <!-- Back Navigation -->
+    <div style="margin-bottom: 1.5rem; text-align: left;">
+      <button @click="$router.back()" class="btn btn-secondary back-btn">
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back
+      </button>
+    </div>
+
+    <!-- Error/Warning Banner -->
+    <div v-if="error" class="info-banner">
+      <span>{{ error }}</span>
+    </div>
+
+    <div v-if="loading" class="loading-state-full">
+      <div class="spinner"></div>
+      <span>Loading enrollment details...</span>
+    </div>
+
+    <div v-if="!loading && enrollment" class="detail-grid-layout">
+      <!-- Left Column: Student & Group details -->
+      <div class="main-info-col">
+        <!-- Student Info Card -->
+        <div class="detail-card glass-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Student Profile</h2>
+          </div>
+          <div class="panel-body">
+            <div class="profile-header-block">
+              <div class="avatar-large">{{ getInitials(student.full_name) }}</div>
+              <div>
+                <h3 class="profile-name">{{ student.full_name }}</h3>
+                <span :class="['status-badge', enrollment.status || 'enrolled']">
+                  {{ enrollment.status || 'enrolled' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="info-fields-grid">
+              <div class="info-field">
+                <span class="field-label">Phone Number 1</span>
+                <span class="field-value">{{ student.phone1 || '-' }}</span>
+              </div>
+              <div class="info-field" v-if="student.phone2">
+                <span class="field-label">Phone Number 2</span>
+                <span class="field-value">{{ student.phone2 }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Date Joined Group</span>
+                <span class="field-value">{{ formatDate(enrollment.date) }}</span>
+              </div>
+              <div class="info-field" style="grid-column: span 2;" v-if="student.description">
+                <span class="field-label">Student Note</span>
+                <span class="field-value description-text">{{ student.description }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group & Class Details Card -->
+        <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
+          <div class="panel-header">
+            <h2 class="panel-title">Group & Schedule Details</h2>
+          </div>
+          <div class="panel-body">
+            <div class="info-fields-grid">
+              <div class="info-field">
+                <span class="field-label">Group Name</span>
+                <span class="field-value highlight-text" @click="$router.push(`/groups/${group.id}`)" style="cursor: pointer;">
+                  {{ group.name }} &rarr;
+                </span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Course</span>
+                <span class="field-value">{{ getCourseName(group.course) }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Instructor</span>
+                <span class="field-value">{{ getTeacherName(group.teacher) }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Branch & Room</span>
+                <span class="field-value">{{ getBranchName(group.branch) }} ({{ getRoomName(group.room) }})</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Lesson Starts At</span>
+                <span class="field-value">{{ formatTime(group.starts_at) }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">Duration</span>
+                <span class="field-value">{{ group.duration }} minutes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student's Enrolled Groups & Debt Status Card -->
+        <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
+          <div class="panel-header">
+            <h2 class="panel-title">Student's Enrolled Groups & Debt Status</h2>
+          </div>
+          <div class="panel-body">
+            <div class="table-wrapper" style="box-shadow: none; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Group</th>
+                    <th>Branch</th>
+                    <th>Enrollment Status</th>
+                    <th>Payment Status</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in studentEnrollments" :key="item.id" :class="['table-row', { 'current-group-row': item.id === enrollment.id }]">
+                    <td class="font-semibold">
+                      {{ item.groupName }}
+                      <span v-if="item.id === enrollment.id" class="current-label-badge">Current</span>
+                    </td>
+                    <td>{{ item.branchName }}</td>
+                    <td>
+                      <span :class="['status-badge', item.status || 'enrolled']">
+                        {{ item.status || 'enrolled' }}
+                      </span>
+                    </td>
+                    <td>
+                      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                        <span :class="['status-badge', item.payment_status || 'debt']">
+                          {{ item.payment_status || 'debt' }}
+                        </span>
+                        <span v-if="(item.payment_status || 'debt') === 'debt'" class="table-debt-amount">
+                          {{ formatPrice(item.debt_amount) }} UZS
+                        </span>
+                      </div>
+                    </td>
+                    <td style="text-align: right;">
+                      <button @click="$router.push(`/enrollments/${item.id}`)" class="btn-icon" title="View Detail" :disabled="item.id === enrollment.id">
+                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="!studentEnrollments.length">
+                    <td colspan="5" class="empty-state">No group enrollments registered for this student.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Payments & Outstanding Debt -->
+      <div class="payment-col">
+        <!-- Balance Overview Card -->
+        <div class="detail-card glass-panel balance-summary-card">
+          <div class="panel-header">
+            <h2 class="panel-title">Payment & Debt Summary</h2>
+          </div>
+          <div class="panel-body">
+            <div class="balance-display-block">
+              <span class="balance-label">Outstanding Debt Balance</span>
+              <h1 :class="['balance-amount', enrollment.payment_status === 'debt' ? 'text-red' : 'text-green']">
+                {{ formatPrice(enrollment.debt_amount) }} UZS
+              </h1>
+              <div class="badge-status-row" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                <span :class="['status-badge', enrollment.payment_status || 'debt']">
+                  Payment Status: {{ enrollment.payment_status || 'debt' }}
+                </span>
+                <button
+                  v-if="(enrollment.payment_status || 'debt') === 'debt' && enrollment.status !== 'dropped'"
+                  @click="openPaymentModal"
+                  class="btn btn-primary"
+                  style="font-size: 0.85rem; padding: 0.45rem 1.25rem; font-weight: 600; width: 100%; justify-content: center;"
+                >
+                  Pay
+                </button>
+              </div>
+            </div>
+
+            <div class="group-pricing-info">
+              <div class="price-row">
+                <span>Group Rate (Monthly):</span>
+                <strong>{{ formatPrice(group.price) }} UZS</strong>
+              </div>
+              <div class="price-row">
+                <span>Total Paid for Group:</span>
+                <strong>{{ formatPrice(totalPaymentsForGroup) }} UZS</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payments Log Card -->
+        <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
+          <div class="panel-header">
+            <h2 class="panel-title">Payments Log (This Group)</h2>
+          </div>
+          <div class="panel-body">
+            <div class="timeline-wrapper">
+              <div v-for="payment in paymentsForGroup" :key="payment.id" class="timeline-item">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <span class="timeline-amount">{{ formatPrice(payment.amount) }} UZS</span>
+                    <span :class="['status-badge', payment.payment_method || 'cash']">
+                      {{ formatMethod(payment.payment_method) }}
+                    </span>
+                  </div>
+                  <span class="timeline-date">{{ formatDateTime(payment.payment_date) }}</span>
+                  <p class="timeline-desc">{{ payment.description || 'No description provided.' }}</p>
+                </div>
+              </div>
+              <div v-if="!paymentsForGroup.length" class="empty-state" style="padding: 1.5rem 0;">
+                No payments recorded yet for this group.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div v-if="showPaymentModal" class="modal-backdrop" @click.self="closePaymentModal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Record Payment</h2>
+          <button @click="closePaymentModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="confirmPayment">
+          <div class="modal-body">
+            <p class="modal-instructions" style="margin-bottom: 1.25rem; text-align: left;">
+              Confirm payment for student <strong>{{ student.full_name }}</strong> in group <strong>{{ group.name }}</strong>.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Amount (UZS)</label>
+              <input
+                type="text"
+                inputmode="numeric"
+                id="paymentAmount"
+                :value="paymentForm.amount"
+                @input="formatPaymentInputPrice"
+                required
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Payment Method</label>
+              <select id="paymentMethod" v-model="paymentForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Description (Optional)</label>
+              <textarea
+                id="paymentDescription"
+                v-model="paymentForm.description"
+                class="form-input"
+                rows="3"
+                placeholder="e.g. Monthly tuition fee payment"
+                style="width: 100%; box-sizing: border-box; resize: vertical;"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closePaymentModal" class="btn btn-secondary">Cancel</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submittingPayment || !paymentForm.amount"
+            >
+              {{ submittingPayment ? 'Processing...' : 'Confirm Payment' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios'
+
+export default {
+  name: 'EnrollmentDetail',
+  data() {
+    return {
+      enrollment: null,
+      student: {},
+      group: {},
+      payments: [],
+      courses: [],
+      teachers: [],
+      rooms: [],
+      branches: [],
+      allEnrollments: [],
+      loading: false,
+      error: null,
+      showPaymentModal: false,
+      submittingPayment: false,
+      paymentForm: {
+        amount: '',
+        payment_method: 'cash',
+        description: ''
+      }
+    }
+  },
+  computed: {
+    paymentsForGroup() {
+      if (!this.payments.length || !this.enrollment) return []
+      return this.payments.filter(
+        p => p.student === this.enrollment.student && p.group === this.enrollment.group
+      ).sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+    },
+    totalPaymentsForGroup() {
+      return this.paymentsForGroup.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+    },
+    studentEnrollments() {
+      if (!this.allEnrollments.length || !this.enrollment) return []
+      // Find all enrollments belonging to the same student (including current)
+      return this.allEnrollments
+        .filter(e => e.student === this.enrollment.student)
+        .map(e => {
+          const grp = e.groupInfo || {}
+          const grpName = grp.name || `Group #${e.group}`
+          
+          let branchName = 'Branch'
+          if (this.branches.length && grp.branch) {
+            const b = this.branches.find(br => br.id === grp.branch)
+            if (b) branchName = b.name
+          }
+
+          return {
+            ...e,
+            groupName: grpName,
+            branchName: branchName
+          }
+        })
+    }
+  },
+  watch: {
+    // Re-fetch data if route id parameter changes (e.g. user navigates between other groups)
+    '$route.params.id': {
+      handler: 'fetchData',
+      immediate: true
+    }
+  },
+  methods: {
+    async fetchData() {
+      const id = this.$route.params.id
+      this.loading = true
+      this.error = null
+      try {
+        const [enrollmentRes, paymentsRes, coursesRes, usersRes, roomsRes, branchesRes, allEnrollmentsRes] = await Promise.all([
+          axios.get(`http://localhost:8000/api/enrollments/${id}/`),
+          axios.get('http://localhost:8000/api/payments/'),
+          axios.get('http://localhost:8000/api/courses/'),
+          axios.get('http://localhost:8000/api/users/'),
+          axios.get('http://localhost:8000/api/rooms/'),
+          axios.get('http://localhost:8000/api/branches/'),
+          axios.get('http://localhost:8000/api/enrollments/')
+        ])
+
+        this.enrollment = enrollmentRes.data
+        this.payments = paymentsRes.data
+        this.courses = coursesRes.data
+        this.teachers = usersRes.data.filter(u => u.role === 'teacher')
+        this.rooms = roomsRes.data
+        this.branches = branchesRes.data
+        
+        // Populate groups list locally for calculations
+        const groupsRes = await axios.get('http://localhost:8000/api/groups/')
+        this.allEnrollments = allEnrollmentsRes.data.map(e => {
+          const g = groupsRes.data.find(grp => grp.id === e.group)
+          return {
+            ...e,
+            groupInfo: g
+          }
+        })
+        
+        // Fetch student detail and current group detail using foreign keys
+        const [studentRes, groupRes] = await Promise.all([
+          axios.get(`http://localhost:8000/api/students/${this.enrollment.student}/`),
+          axios.get(`http://localhost:8000/api/groups/${this.enrollment.group}/`)
+        ])
+        
+        this.student = studentRes.data
+        this.group = groupRes.data
+        this.loading = false
+      } catch (err) {
+        console.error('Error fetching enrollment details:', err)
+        this.error = 'Failed to load enrollment record details from the server.'
+        this.loading = false
+      }
+    },
+    getInitials(name) {
+      if (!name) return 'S'
+      return name.split(' ').map(p => p.charAt(0)).join('').toUpperCase().slice(0, 2)
+    },
+    getCourseName(id) {
+      const item = this.courses.find(c => c.id === id)
+      return item ? item.name : `Course #${id}`
+    },
+    getTeacherName(id) {
+      const item = this.teachers.find(t => t.id === id)
+      return item ? `${item.first_name} ${item.last_name}` : `Teacher #${id}`
+    },
+    getRoomName(id) {
+      const item = this.rooms.find(r => r.id === id)
+      return item ? item.name : `Room #${id}`
+    },
+    getBranchName(id) {
+      const item = this.branches.find(b => b.id === id)
+      return item ? item.name : `Branch #${id}`
+    },
+    formatPrice(price) {
+      if (!price && price !== 0) return '0'
+      const val = Math.round(parseFloat(price))
+      return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    },
+    formatTime(timeStr) {
+      if (!timeStr) return '-'
+      const parts = timeStr.split(':')
+      if (parts.length >= 2) return `${parts[0]}:${parts[1]}`
+      return timeStr
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '-'
+      try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      } catch (e) {
+        return dateStr
+      }
+    },
+    formatDateTime(dateStr) {
+      if (!dateStr) return '-'
+      try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch (e) {
+        return dateStr
+      }
+    },
+    formatMethod(method) {
+      if (!method) return 'Cash'
+      return method.charAt(0).toUpperCase() + method.slice(1)
+    },
+    openPaymentModal() {
+      // Auto-populate the amount input with the group's price or outstanding debt
+      const defaultAmount = this.formatPrice(this.enrollment.debt_amount || this.group.price)
+      this.paymentForm = {
+        amount: defaultAmount,
+        payment_method: 'cash',
+        description: ''
+      }
+      this.showPaymentModal = true
+    },
+    closePaymentModal() {
+      this.showPaymentModal = false
+    },
+    formatPaymentInputPrice(event) {
+      const input = event.target
+      const originalValue = input.value
+      const selectionStart = input.selectionStart
+      
+      const numericVal = originalValue.replace(/[^\d]/g, '')
+      if (!numericVal) {
+        this.paymentForm.amount = ''
+        return
+      }
+      
+      const formatted = this.formatPrice(numericVal)
+      this.paymentForm.amount = formatted
+      
+      this.$nextTick(() => {
+        const delta = formatted.length - originalValue.length
+        const newCursorPos = selectionStart + delta
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+    async confirmPayment() {
+      this.submittingPayment = true
+      try {
+        const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
+        const amountVal = parseFloat(rawAmount || 0)
+        
+        await axios.post('http://localhost:8000/api/payments/', {
+          group: this.group.id,
+          student: this.student.id,
+          amount: amountVal,
+          payment_method: this.paymentForm.payment_method,
+          description: this.paymentForm.description || `Payment for group: ${this.group.name}`
+        })
+        
+        this.closePaymentModal()
+        await this.fetchData()
+      } catch (err) {
+        console.error('Error confirming payment:', err)
+        alert('An error occurred while confirming the payment.')
+      } finally {
+        this.submittingPayment = false
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+@import '../assets/views.css';
+
+.back-btn {
+  font-size: 0.85rem;
+  padding: 0.45rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.detail-grid-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.75rem;
+  text-align: left;
+}
+
+@media (max-width: 1024px) {
+  .detail-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.glass-panel {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -2px rgba(0, 0, 0, 0.01);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.panel-body {
+  padding: 1.5rem;
+}
+
+/* Profile Header Section */
+.profile-header-block {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.avatar-large {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.profile-name {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Info Grid Layout */
+.info-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 1.5rem;
+}
+
+.info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.field-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.highlight-text {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.highlight-text:hover {
+  text-decoration: underline;
+}
+
+.description-text {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.5;
+  background-color: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #cbd5e1;
+}
+
+/* Balance Display */
+.balance-summary-card {
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
+}
+
+.balance-display-block {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 1.5rem;
+}
+
+.balance-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.balance-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+  line-height: 1;
+}
+
+.badge-status-row {
+  margin-top: 0.75rem;
+  display: inline-block;
+}
+
+.text-red {
+  color: #dc2626 !important;
+}
+
+.text-green {
+  color: #16a34a !important;
+}
+
+.group-pricing-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.price-row strong {
+  color: #1e293b;
+}
+
+/* Timeline/Payments logs */
+.timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.timeline-wrapper::before {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background-color: #e2e8f0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1.25rem;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #6366f1;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.timeline-content {
+  background-color: #f8fafc;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-amount {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.timeline-date {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-desc {
+  margin: 0;
+  font-size: 0.825rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.status-badge.cash {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-badge.card {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
+.loading-state-full {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  color: #64748b;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(99, 102, 241, 0.1);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.current-group-row {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+.current-label-badge {
+  font-size: 0.7rem;
+  background-color: #6366f1;
+  color: white;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: 500;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.table-debt-amount {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.775rem;
+}
+</style>

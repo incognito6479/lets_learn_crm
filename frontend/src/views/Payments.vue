@@ -5,12 +5,33 @@
         <h1 class="view-title">Payments</h1>
         <p class="view-subtitle">Review incoming transactions and student bills</p>
       </div>
-      <div class="badge-count" v-if="payments.length">{{ totalPayments }} UZS total</div>
+      <div class="badge-count" v-if="filteredPayments.length">{{ totalPayments }} UZS total</div>
     </div>
 
     <!-- Error/Warning Banner -->
     <div v-if="error" class="info-banner">
       <span>{{ error }}</span>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="filter-bar" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 260px; max-width: 320px;">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Search by student name..."
+          class="form-input"
+        />
+      </div>
+      
+      <div style="width: 200px;">
+        <select v-model="selectedGroup" class="form-input">
+          <option value="">All Groups</option>
+          <option v-for="group in groups" :key="group.id" :value="group.id">
+            {{ group.name }}
+          </option>
+        </select>
+      </div>
     </div>
 
     <!-- Data Table Container -->
@@ -29,7 +50,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="payment in payments" :key="payment.id" class="table-row">
+            <tr v-for="payment in filteredPayments" :key="payment.id" class="table-row">
               <td class="font-mono text-muted">#{{ payment.id }}</td>
               <td class="font-semibold">{{ getStudentName(payment.student) }}</td>
               <td>{{ getGroupName(payment.group) }}</td>
@@ -42,7 +63,7 @@
               <td>{{ formatDate(payment.payment_date) }}</td>
               <td>{{ payment.description || '-' }}</td>
             </tr>
-            <tr v-if="!payments.length && !loading">
+            <tr v-if="!filteredPayments.length && !loading">
               <td colspan="7" class="empty-state">No payments found.</td>
             </tr>
             <tr v-if="loading">
@@ -68,13 +89,31 @@ export default {
       payments: [],
       students: [],
       groups: [],
+      searchQuery: '',
+      selectedGroup: '',
       loading: false,
       error: null
     }
   },
   computed: {
+    filteredPayments() {
+      let list = this.payments
+      
+      if (this.selectedGroup) {
+        list = list.filter(p => p.group === this.selectedGroup)
+      }
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase().trim()
+        list = list.filter(p => {
+          const name = this.getStudentName(p.student).toLowerCase()
+          return name.includes(query)
+        })
+      }
+      
+      return list
+    },
     totalPayments() {
-      const sum = this.payments.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0)
+      const sum = this.filteredPayments.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0)
       return this.formatPrice(sum)
     }
   },

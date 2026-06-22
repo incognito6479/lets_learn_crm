@@ -1,4 +1,7 @@
 from rest_framework import viewsets, permissions
+from django.utils import timezone
+from django.db.models import Sum
+from .models import Enrollment
 from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment
 from .serializers import (
     BranchSerializer, UserSerializer, StudentSerializer, 
@@ -52,3 +55,15 @@ class EnrollmentViewSet(SoftDeleteModelViewSet):
 class PaymentViewSet(SoftDeleteModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
+
+    def perform_create(self, serializer):
+        payment = serializer.save()
+        # Recalculate debt status for this student and group
+        enrollment = Enrollment.objects.filter(
+            student=payment.student,
+            group=payment.group,
+            is_active=True
+        ).first()
+        
+        if enrollment:
+            enrollment.check_debt()

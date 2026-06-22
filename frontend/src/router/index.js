@@ -9,6 +9,8 @@ import Branches from '../views/Branches.vue'
 import Courses from '../views/Courses.vue'
 import Groups from '../views/Groups.vue'
 import GroupDetail from '../views/GroupDetail.vue'
+import DebtList from '../views/DebtList.vue'
+import EnrollmentDetail from '../views/EnrollmentDetail.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -20,7 +22,9 @@ const routes = [
   { path: '/branches', name: 'Branches', component: Branches },
   { path: '/courses', name: 'Courses', component: Courses },
   { path: '/groups', name: 'Groups', component: Groups },
-  { path: '/groups/:id', name: 'GroupDetail', component: GroupDetail }
+  { path: '/groups/:id', name: 'GroupDetail', component: GroupDetail },
+  { path: '/debts', name: 'DebtList', component: DebtList },
+  { path: '/enrollments/:id', name: 'EnrollmentDetail', component: EnrollmentDetail }
 ]
 
 const router = createRouter({

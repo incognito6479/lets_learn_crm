@@ -40,5 +40,21 @@ services:
     depends_on:
       - backend
 
+  scheduler:
+    build: ./backend
+    command: python manage.py run_scheduler
+    volumes:
+      - ./backend:/app
+    environment:
+      - DB_NAME=learning_center
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-key-for-dev
+    depends_on:
+      - db
+
 volumes:
   postgres_data:

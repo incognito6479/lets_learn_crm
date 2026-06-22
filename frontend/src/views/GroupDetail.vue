@@ -105,7 +105,11 @@
               <tbody>
                 <tr v-for="enrolled in enrolledStudents" :key="enrolled.enrollmentId" class="table-row">
                   <td class="font-mono text-muted">#{{ enrolled.id }}</td>
-                  <td class="font-semibold">{{ enrolled.full_name }}</td>
+                  <td class="font-semibold">
+                    <router-link :to="`/enrollments/${enrolled.enrollmentId}`" class="student-detail-link">
+                      {{ enrolled.full_name }}
+                    </router-link>
+                  </td>
                   <td>{{ enrolled.phone1 }}</td>
                   <td>
                     <span :class="['status-badge', enrolled.status || 'enrolled']">
@@ -116,6 +120,9 @@
                     <div class="payment-status-cell">
                       <span :class="['status-badge', enrolled.payment_status || 'debt']">
                         {{ enrolled.payment_status || 'debt' }}
+                      </span>
+                      <span v-if="(enrolled.payment_status || 'debt') === 'debt'" class="debt-amount">
+                        {{ formatPrice(enrolled.debt_amount) }} UZS
                       </span>
                       <button
                         v-if="(enrolled.payment_status || 'debt') === 'debt' && enrolled.status !== 'dropped'"
@@ -175,15 +182,23 @@
         <div class="modal-body">
           <p class="modal-instructions">Select one or more students to enroll into <strong>{{ group.name }}</strong>.</p>
           
-          <!-- Search box -->
-          <div class="search-bar-container" style="margin-bottom: 0.75rem;">
+          <!-- Search box & New Student Button -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
             <input
               type="text"
               v-model="enrollSearchQuery"
               placeholder="Search students by name..."
               class="form-input"
-              style="padding: 0.55rem 0.75rem; font-size: 0.875rem;"
+              style="padding: 0.55rem 0.75rem; font-size: 0.875rem; flex: 1;"
             />
+            <button
+              type="button"
+              @click="openCreateStudentModal"
+              class="btn btn-primary"
+              style="font-size: 0.85rem; padding: 0.55rem 0.75rem; flex-shrink: 0; white-space: nowrap;"
+            >
+              New Student
+            </button>
           </div>
 
           <!-- Students checklist container -->
@@ -286,6 +301,84 @@
         </form>
       </div>
     </div>
+
+    <!-- Create Student Modal -->
+    <div v-if="showCreateStudentModal" class="modal-backdrop" @click.self="closeCreateStudentModal" style="z-index: 10000;">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Create New Student</h2>
+          <button @click="closeCreateStudentModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="saveNewStudent">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="newStudentName" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Full Name</label>
+              <input
+                type="text"
+                id="newStudentName"
+                v-model="studentForm.full_name"
+                required
+                placeholder="e.g. John Doe"
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="newStudentPhone1" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Primary Phone</label>
+              <input
+                type="text"
+                id="newStudentPhone1"
+                v-model="studentForm.phone1"
+                required
+                placeholder="e.g. +998 90 123 45 67"
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="newStudentPhone2" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Secondary Phone (Optional)</label>
+              <input
+                type="text"
+                id="newStudentPhone2"
+                v-model="studentForm.phone2"
+                placeholder="e.g. +998 90 987 65 43"
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="newStudentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Description (Optional)</label>
+              <textarea
+                id="newStudentDescription"
+                v-model="studentForm.description"
+                class="form-input"
+                rows="3"
+                placeholder="e.g. Prep for IELTS"
+                style="width: 100%; box-sizing: border-box; resize: vertical;"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closeCreateStudentModal" class="btn btn-secondary">Cancel</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submittingNewStudent || !studentForm.full_name || !studentForm.phone1"
+            >
+              {{ submittingNewStudent ? 'Creating...' : 'Create Student' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -320,7 +413,17 @@ export default {
         payment_method: 'cash',
         description: ''
       },
-      submittingPayment: false
+      submittingPayment: false,
+
+      // Create student modal state
+      showCreateStudentModal: false,
+      submittingNewStudent: false,
+      studentForm: {
+        full_name: '',
+        phone1: '',
+        phone2: '',
+        description: ''
+      }
     }
   },
   computed: {
@@ -334,6 +437,7 @@ export default {
           enrollmentId: e.id,
           status: e.status,
           payment_status: e.payment_status,
+          debt_amount: e.debt_amount,
           date: e.date,
           studentId: e.student,
           ...studentInfo
@@ -505,11 +609,6 @@ export default {
     async confirmPayment() {
       this.submittingPayment = true
       try {
-        // Update enrollment status to paid
-        await axios.patch(`http://localhost:8000/api/enrollments/${this.paymentEnrollment.enrollmentId}/`, {
-          payment_status: 'paid'
-        })
-        
         // Create payment record
         const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
         const amountVal = parseFloat(rawAmount || 0)
@@ -529,6 +628,43 @@ export default {
         alert('An error occurred while confirming the payment.')
       } finally {
         this.submittingPayment = false
+      }
+    },
+    openCreateStudentModal() {
+      this.studentForm = {
+        full_name: '',
+        phone1: '',
+        phone2: '',
+        description: ''
+      }
+      this.showCreateStudentModal = true
+    },
+    closeCreateStudentModal() {
+      this.showCreateStudentModal = false
+    },
+    async saveNewStudent() {
+      this.submittingNewStudent = true
+      try {
+        const response = await axios.post('http://localhost:8000/api/students/', this.studentForm)
+        const newStudent = response.data
+        
+        // Refresh students list
+        const studentsRes = await axios.get('http://localhost:8000/api/students/')
+        this.students = studentsRes.data
+        
+        // Auto-select the new student for enrollment
+        if (newStudent && newStudent.id) {
+          if (!this.selectedStudentIds.includes(newStudent.id)) {
+            this.selectedStudentIds.push(newStudent.id)
+          }
+        }
+        
+        this.closeCreateStudentModal()
+      } catch (err) {
+        console.error('Error creating new student:', err)
+        alert('An error occurred while creating the student.')
+      } finally {
+        this.submittingNewStudent = false
       }
     }
   }
@@ -742,6 +878,25 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.debt-amount {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.student-detail-link {
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.student-detail-link:hover {
+  color: #312e81;
+  text-decoration: underline;
 }
 
 .btn-pay {

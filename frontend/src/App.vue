@@ -46,6 +46,10 @@
           <span class="nav-icon">💰</span>
           <span class="nav-text">Payments</span>
         </router-link>
+        <router-link to="/debts" class="nav-item">
+          <span class="nav-icon">⚠️</span>
+          <span class="nav-text">Debts</span>
+        </router-link>
       </nav>
     </aside>
 

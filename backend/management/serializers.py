@@ -35,6 +35,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
         exclude = ('created_at', 'is_active')
+        read_only_fields = ('debt_amount',)
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:

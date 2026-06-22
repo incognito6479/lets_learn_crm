@@ -54,6 +54,69 @@
           <span>View all instructors &rarr;</span>
         </div>
       </div>
+
+      <!-- Outstanding Debt Stat Card -->
+      <div class="stat-card card-red" @click="$router.push('/debts')">
+        <div class="card-content">
+          <div class="card-info">
+            <span class="card-label">Outstanding Debt</span>
+            <h2 class="card-value" v-if="!loading">{{ formatPrice(totalDebtAmount) }} UZS</h2>
+            <div class="spinner-small" v-else></div>
+          </div>
+          <div class="card-icon-wrapper">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>{{ debtStudentsCount }} students in debt &rarr;</span>
+        </div>
+      </div>
+
+      <!-- Active Groups Stat Card -->
+      <div class="stat-card card-green" @click="$router.push('/groups')">
+        <div class="card-content">
+          <div class="card-info">
+            <span class="card-label">Active Groups</span>
+            <h2 class="card-value" v-if="!loading">{{ activeGroupsCount }}</h2>
+            <div class="spinner-small" v-else></div>
+          </div>
+          <div class="card-icon-wrapper">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 010 7.75"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>View ongoing classes &rarr;</span>
+        </div>
+      </div>
+
+      <!-- Current Month Income Card (Non-clickable) -->
+      <div class="stat-card card-orange non-clickable">
+        <div class="card-content">
+          <div class="card-info">
+            <span class="card-label">Current Month Income</span>
+            <h2 class="card-value" v-if="!loading">{{ formatPrice(currentMonthIncome) }} UZS</h2>
+            <div class="spinner-small" v-else></div>
+          </div>
+          <div class="card-icon-wrapper">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Total collected this month</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -68,6 +131,10 @@ export default {
       username: '',
       studentCount: 0,
       teacherCount: 0,
+      totalDebtAmount: 0,
+      debtStudentsCount: 0,
+      activeGroupsCount: 0,
+      currentMonthIncome: 0,
       loading: false,
       error: null
     }
@@ -82,19 +149,56 @@ export default {
       this.error = null
 
       try {
-        const [studentsRes, usersRes] = await Promise.all([
+        const [studentsRes, usersRes, enrollmentsRes, groupsRes, paymentsRes] = await Promise.all([
           axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/users/')
+          axios.get('http://localhost:8000/api/users/'),
+          axios.get('http://localhost:8000/api/enrollments/'),
+          axios.get('http://localhost:8000/api/groups/'),
+          axios.get('http://localhost:8000/api/payments/')
         ])
 
         this.studentCount = studentsRes.data.length
         this.teacherCount = usersRes.data.filter(u => u.role === 'teacher').length
+        
+        // Calculate active ongoing groups
+        this.activeGroupsCount = groupsRes.data.filter(g => g.status === 'ongoing').length
+        
+        // Calculate current month income
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth()
+        const currentMonthPayments = paymentsRes.data.filter(p => {
+          const pDate = new Date(p.payment_date)
+          return pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
+        })
+        this.currentMonthIncome = currentMonthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+
+        // Filter active debt enrollments
+        const activeDebtEnrollments = enrollmentsRes.data.filter(
+          e => e.status === 'enrolled' && e.payment_status === 'debt'
+        )
+        
+        // Calculate total outstanding debt
+        this.totalDebtAmount = activeDebtEnrollments.reduce(
+          (sum, e) => sum + parseFloat(e.debt_amount || 0),
+          0
+        )
+        
+        // Calculate unique students in debt
+        const uniqueDebtStudents = new Set(activeDebtEnrollments.map(e => e.student))
+        this.debtStudentsCount = uniqueDebtStudents.size
+        
         this.loading = false
       } catch (err) {
         console.error('Error fetching statistics:', err)
         this.error = 'Unable to connect to backend API.'
         this.loading = false
       }
+    },
+    formatPrice(price) {
+      if (!price && price !== 0) return '0'
+      const val = Math.round(parseFloat(price))
+      return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
     }
   }
 }
@@ -228,6 +332,57 @@ export default {
 .card-blue:hover .card-icon-wrapper {
   background-color: #3b82f6;
   color: white;
+}
+
+.card-red .card-icon-wrapper {
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+.card-red:hover .card-icon-wrapper {
+  background-color: #ef4444;
+  color: white;
+}
+.card-red .card-footer {
+  color: #ef4444;
+}
+
+.card-green .card-icon-wrapper {
+  background-color: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+}
+.card-green:hover .card-icon-wrapper {
+  background-color: #10b981;
+  color: white;
+}
+.card-green .card-footer {
+  color: #10b981;
+}
+
+.card-orange .card-icon-wrapper {
+  background-color: rgba(249, 115, 22, 0.08);
+  color: #f97316;
+}
+.card-orange:hover .card-icon-wrapper {
+  background-color: #f97316;
+  color: white;
+}
+.card-orange .card-footer {
+  color: #f97316;
+}
+
+.stat-card.non-clickable {
+  cursor: default !important;
+}
+.stat-card.non-clickable:hover {
+  transform: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02) !important;
+}
+.stat-card.non-clickable:hover .card-footer {
+  background-color: #f8fafc !important;
+}
+.stat-card.non-clickable:hover .card-icon-wrapper {
+  background-color: rgba(249, 115, 22, 0.08) !important;
+  color: #f97316 !important;
 }
 
 .card-footer {
