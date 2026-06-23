@@ -169,7 +169,7 @@ export default {
         const currentMonth = now.getMonth()
         const currentMonthPayments = paymentsRes.data.filter(p => {
           const pDate = new Date(p.payment_date)
-          return pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
+          return p.is_active && p.status === 'accepted' && pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
         })
         this.currentMonthIncome = currentMonthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
 

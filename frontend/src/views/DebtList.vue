@@ -36,11 +36,11 @@
         </select>
       </div>
 
-      <div style="width: 200px;">
+      <div style="min-width: 250px;">
         <select v-model="selectedGroup" class="form-input">
           <option value="">All Groups</option>
           <option v-for="group in filteredGroupsForSelect" :key="group.id" :value="group.id">
-            {{ group.name }}
+            {{ group.name }} ({{ formatTime(group.starts_at) }}, {{ group.group_days_at || 'Mon-Wed-Fri' }})
           </option>
         </select>
       </div>
@@ -287,6 +287,14 @@ export default {
       } catch (e) {
         return dateStr
       }
+    },
+    formatTime(timeStr) {
+      if (!timeStr) return '-'
+      const parts = timeStr.split(':')
+      if (parts.length >= 2) {
+        return `${parts[0]}:${parts[1]}`
+      }
+      return timeStr
     },
     navigateToEnrollment(id) {
       this.$router.push(`/enrollments/${id}`)

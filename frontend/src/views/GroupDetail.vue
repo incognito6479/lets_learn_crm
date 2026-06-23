@@ -61,6 +61,10 @@
               <span class="info-value font-mono">{{ formatTime(group.starts_at) }}</span>
             </div>
             <div class="info-item">
+              <span class="info-label">Days</span>
+              <span class="info-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
+            </div>
+            <div class="info-item">
               <span class="info-label">Duration</span>
               <span class="info-value">{{ group.duration }} minutes</span>
             </div>
@@ -81,12 +85,19 @@
         <div class="table-card">
           <div class="table-header-bar">
             <h2 class="card-section-title">Enrolled Students</h2>
-            <button @click="openEnrollModal" class="btn btn-primary btn-sm">
+            <button v-if="userRole !== 'teacher'" @click="openEnrollModal" class="btn btn-primary btn-sm">
               <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               Enroll a Student
+            </button>
+            <button v-if="userRole === 'teacher'" @click="openGradeModal" class="btn btn-primary btn-sm">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Grade Students
             </button>
           </div>
           <div class="table-wrapper">
@@ -96,10 +107,10 @@
                   <th>ID</th>
                   <th>Full Name</th>
                   <th>Primary Phone</th>
-                  <th>Enrollment Status</th>
-                  <th>Payment Status</th>
+                   <th>Enrollment Status</th>
+                  <th v-if="userRole !== 'teacher'">Payment Status</th>
                   <th>Enrollment Date</th>
-                  <th style="text-align: right;">Actions</th>
+                  <th v-if="userRole !== 'teacher'" style="text-align: right;">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,7 +127,7 @@
                       {{ enrolled.status || 'enrolled' }}
                     </span>
                   </td>
-                  <td>
+                   <td v-if="userRole !== 'teacher'">
                     <div class="payment-status-cell">
                       <span :class="['status-badge', enrolled.payment_status || 'debt']">
                         {{ enrolled.payment_status || 'debt' }}
@@ -135,7 +146,7 @@
                     </div>
                   </td>
                   <td>{{ formatDate(enrolled.date) }}</td>
-                  <td class="actions-cell">
+                   <td v-if="userRole !== 'teacher'" class="actions-cell">
                     <button
                       v-if="enrolled.status !== 'dropped'"
                       @click="unenrollStudent(enrolled)"
@@ -151,8 +162,44 @@
                     </button>
                   </td>
                 </tr>
-                <tr v-if="!enrolledStudents.length">
-                  <td colspan="7" class="empty-state">No students currently enrolled in this group.</td>
+                 <tr v-if="!enrolledStudents.length">
+                  <td :colspan="userRole === 'teacher' ? 5 : 7" class="empty-state">No students currently enrolled in this group.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Graded Students Card -->
+        <div class="table-card" style="margin-top: 1.5rem;">
+          <div class="table-header-bar">
+            <h2 class="card-section-title">Graded Students</h2>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Grade</th>
+                  <th>Date</th>
+                  <th>Teacher</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="grade in groupGrades" :key="grade.id" class="table-row">
+                  <td class="font-semibold">{{ grade.studentName }}</td>
+                  <td>
+                    <span :class="['grade-badge', 'grade-' + grade.grade]">
+                      {{ getGradeLabel(grade.grade) }}
+                    </span>
+                  </td>
+                  <td>{{ formatDate(grade.date) }}</td>
+                  <td>{{ grade.teacherName }}</td>
+                  <td class="text-muted">{{ grade.description || '-' }}</td>
+                </tr>
+                <tr v-if="!groupGrades.length">
+                  <td colspan="5" class="empty-state">No grades recorded yet.</td>
                 </tr>
               </tbody>
             </table>
@@ -233,6 +280,62 @@
             {{ submittingEnrollment ? 'Enrolling...' : `Enroll Selected (${selectedStudentIds.length})` }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Grade Students Modal -->
+    <div v-if="showGradeModal" class="modal-backdrop" @click.self="closeGradeModal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Grade Student</h2>
+          <button @click="closeGradeModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="submitGrade">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="gradeStudent" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Select Student</label>
+              <select id="gradeStudent" v-model="gradeForm.enrolled_student" required class="form-input" style="width: 100%;">
+                <option value="" disabled>Select Student...</option>
+                <option v-for="student in activeEnrolledStudents" :key="student.id" :value="student.studentId">
+                  {{ student.full_name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="gradeValue" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Grade</label>
+              <select id="gradeValue" v-model.number="gradeForm.grade" required class="form-input" style="width: 100%;">
+                <option :value="5">5 - Excellent 🤩</option>
+                <option :value="4">4 - Good 🙂</option>
+                <option :value="3">3 - Not bad 😐</option>
+                <option :value="2">2 - Bad 😞</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="gradeDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Description (Optional)</label>
+              <textarea
+                id="gradeDescription"
+                v-model="gradeForm.description"
+                placeholder="Remarks on performance, homework, etc..."
+                class="form-input"
+                rows="3"
+                style="width: 100%; box-sizing: border-box; resize: vertical;"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closeGradeModal" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="submittingGrade || !gradeForm.enrolled_student">
+              {{ submittingGrade ? 'Saving...' : 'Submit Grade' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -398,6 +501,18 @@ export default {
       enrollments: [],
       loading: false,
       error: null,
+      userRole: localStorage.getItem('user_role') || '',
+      userId: parseInt(localStorage.getItem('user_id')) || null,
+      grades: [],
+
+      // Grading state
+      showGradeModal: false,
+      submittingGrade: false,
+      gradeForm: {
+        enrolled_student: '',
+        grade: 5,
+        description: ''
+      },
 
       // Enrollment modal state
       showEnrollModal: false,
@@ -427,6 +542,24 @@ export default {
     }
   },
   computed: {
+    groupGrades() {
+      if (!this.group || !this.grades.length) return []
+      return this.grades
+        .filter(g => g.group === this.group.id && g.is_active !== false)
+        .map(g => {
+          const student = this.students.find(s => s.id === g.enrolled_student)
+          const teacher = this.teachers.find(t => t.id === g.teacher)
+          return {
+            ...g,
+            studentName: student ? student.full_name : `Student #${g.enrolled_student}`,
+            teacherName: teacher ? `${teacher.first_name} ${teacher.last_name}` : `Teacher #${g.teacher}`
+          }
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id)
+    },
+    activeEnrolledStudents() {
+      return this.enrolledStudents.filter(s => s.status !== 'dropped')
+    },
     enrolledStudents() {
       if (!this.group || !this.students.length || !this.enrollments.length) return []
       // Filter active enrollments for this group
@@ -468,14 +601,15 @@ export default {
       this.error = null
       const id = this.$route.params.id
       try {
-        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes] = await Promise.all([
+        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes] = await Promise.all([
           axios.get(`http://localhost:8000/api/groups/${id}/`),
           axios.get('http://localhost:8000/api/courses/'),
           axios.get('http://localhost:8000/api/users/'),
           axios.get('http://localhost:8000/api/rooms/'),
           axios.get('http://localhost:8000/api/branches/'),
           axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/enrollments/')
+          axios.get('http://localhost:8000/api/enrollments/'),
+          axios.get('http://localhost:8000/api/grades/')
         ])
         
         this.group = groupRes.data
@@ -485,11 +619,53 @@ export default {
         this.branches = branchesRes.data
         this.students = studentsRes.data
         this.enrollments = enrollmentsRes.data
+        this.grades = gradesRes.data
       } catch (err) {
         console.error('Error fetching group details:', err)
         this.error = 'Failed to load group detail from the server.'
       } finally {
         this.loading = false
+      }
+    },
+    openGradeModal() {
+      this.gradeForm = {
+        enrolled_student: '',
+        grade: 5,
+        description: ''
+      }
+      this.showGradeModal = true
+    },
+    closeGradeModal() {
+      this.showGradeModal = false
+    },
+    async submitGrade() {
+      this.submittingGrade = true
+      try {
+        const payload = {
+          enrolled_student: this.gradeForm.enrolled_student,
+          group: this.group.id,
+          teacher: this.userId,
+          grade: this.gradeForm.grade,
+          description: this.gradeForm.description,
+          date: new Date().toISOString().split('T')[0]
+        }
+        await axios.post('http://localhost:8000/api/grades/', payload)
+        this.closeGradeModal()
+        this.fetchData()
+      } catch (err) {
+        console.error('Error submitting grade:', err)
+        alert('An error occurred while saving the student grade record.')
+      } finally {
+        this.submittingGrade = false
+      }
+    },
+    getGradeLabel(grade) {
+      switch (grade) {
+        case 5: return 'Excellent 🤩'
+        case 4: return 'Good 🙂'
+        case 3: return 'Not bad 😐'
+        case 2: return 'Bad 😞'
+        default: return `${grade}`
       }
     },
     getCourseName(id) {
@@ -921,5 +1097,36 @@ export default {
 
 .btn-pay:active {
   transform: translateY(0);
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.grade-5 {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.grade-4 {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.grade-3 {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.grade-2 {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
 }
 </style>

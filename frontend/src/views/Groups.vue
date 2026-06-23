@@ -7,7 +7,7 @@
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
         <div class="badge-count" v-if="groups.length">{{ groups.length }} groups</div>
-        <button @click="openCreateModal" class="btn btn-primary">
+        <button v-if="userRole !== 'teacher'" @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -63,6 +63,7 @@
               <th>Course</th>
               <th>Teacher</th>
               <th>Location (Room)</th>
+              <th>Days</th>
               <th>Branch</th>
               <th>Status</th>
               <th>Price</th>
@@ -76,6 +77,7 @@
               <td>{{ getCourseName(group.course) }}</td>
               <td>{{ getTeacherName(group.teacher) }}</td>
               <td>{{ getRoomName(group.room) }}</td>
+              <td>{{ group.group_days_at || 'Mon-Wed-Fri' }}</td>
               <td>{{ getBranchName(group.branch) }}</td>
               <td>
                 <span :class="['status-badge', group.status || 'enrolled']">
@@ -90,13 +92,13 @@
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
-                <button @click.stop="openEditModal(group)" class="btn-icon" title="Edit Group">
+                <button v-if="userRole !== 'teacher'" @click.stop="openEditModal(group)" class="btn-icon" title="Edit Group">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button @click.stop="deleteGroup(group)" class="btn-icon btn-icon-danger" title="Delete Group">
+                <button v-if="userRole !== 'teacher'" @click.stop="deleteGroup(group)" class="btn-icon btn-icon-danger" title="Delete Group">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -122,8 +124,8 @@
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal-content" style="max-width: 540px;">
-        <div class="modal-header">
+      <div class="modal-content" style="max-width: 540px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
           <h2 class="modal-title">{{ isEdit ? 'Edit Group' : 'Add Group' }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -132,8 +134,8 @@
             </svg>
           </button>
         </div>
-        <form @submit.prevent="saveGroup">
-          <div class="modal-body">
+        <form @submit.prevent="saveGroup" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+          <div class="modal-body" style="overflow-y: auto; flex: 1;">
             <div class="form-group">
               <label for="groupName" class="form-label">Group Name</label>
               <input
@@ -156,7 +158,7 @@
                   </option>
                 </select>
               </div>
-
+ 
               <div class="form-group">
                 <label for="groupRoom" class="form-label">Room</label>
                 <select id="groupRoom" v-model="form.room" required class="form-input" :disabled="!form.branch">
@@ -167,7 +169,7 @@
                 </select>
               </div>
             </div>
-
+ 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label for="groupCourse" class="form-label">Course</label>
@@ -178,7 +180,7 @@
                   </option>
                 </select>
               </div>
-
+ 
               <div class="form-group">
                 <label for="groupTeacher" class="form-label">Teacher</label>
                 <select id="groupTeacher" v-model="form.teacher" required class="form-input">
@@ -189,7 +191,7 @@
                 </select>
               </div>
             </div>
-
+ 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label for="startedAt" class="form-label">Start Date</label>
@@ -201,7 +203,7 @@
                   class="form-input"
                 />
               </div>
-
+ 
               <div class="form-group">
                 <label for="startsAt" class="form-label">Start Time</label>
                 <input
@@ -213,8 +215,8 @@
                 />
               </div>
             </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+ 
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label for="duration" class="form-label">Duration (Minutes)</label>
                 <input
@@ -227,7 +229,7 @@
                   class="form-input"
                 />
               </div>
-
+ 
               <div class="form-group">
                 <label for="groupPrice" class="form-label">Price (UZS)</label>
                 <input
@@ -240,7 +242,18 @@
                   class="form-input"
                 />
               </div>
+            </div>
 
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label for="groupDays" class="form-label">Days</label>
+                <select id="groupDays" v-model="form.group_days_at" required class="form-input">
+                  <option value="Mon-Wed-Fri">Mon-Wed-Fri</option>
+                  <option value="Tue-Thur-Sat">Tue-Thur-Sat</option>
+                  <option value="Everyday">Everyday</option>
+                </select>
+              </div>
+ 
               <div class="form-group">
                 <label for="groupStatus" class="form-label">Status</label>
                 <select id="groupStatus" v-model="form.status" required class="form-input">
@@ -250,7 +263,7 @@
                 </select>
               </div>
             </div>
-
+ 
             <div class="form-group">
               <label for="description" class="form-label">Description (Optional)</label>
               <textarea
@@ -263,7 +276,7 @@
               ></textarea>
             </div>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer" style="flex-shrink: 0;">
             <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
               {{ submitting ? 'Saving...' : 'Save Changes' }}
@@ -299,6 +312,8 @@ export default {
       showModal: false,
       isEdit: false,
       submitting: false,
+      userRole: localStorage.getItem('user_role') || '',
+      userId: parseInt(localStorage.getItem('user_id')) || null,
       form: {
         id: null,
         name: '',
@@ -311,6 +326,7 @@ export default {
         duration: 90,
         price: '',
         status: 'ongoing',
+        group_days_at: 'Mon-Wed-Fri',
         description: ''
       }
     }
@@ -358,7 +374,11 @@ export default {
           axios.get('http://localhost:8000/api/branches/')
         ])
         
-        this.groups = groupsRes.data
+        let groupsData = groupsRes.data
+        if (this.userRole === 'teacher' && this.userId) {
+          groupsData = groupsData.filter(g => g.teacher === this.userId)
+        }
+        this.groups = groupsData
         this.courses = coursesRes.data
         this.teachers = usersRes.data.filter(u => u.role === 'teacher')
         this.rooms = roomsRes.data
@@ -426,6 +446,7 @@ export default {
         duration: 90,
         price: '',
         status: 'ongoing',
+        group_days_at: 'Mon-Wed-Fri',
         description: ''
       }
       this.showModal = true
@@ -444,6 +465,7 @@ export default {
         duration: group.duration,
         price: group.price,
         status: group.status || 'ongoing',
+        group_days_at: group.group_days_at || 'Mon-Wed-Fri',
         description: group.description || ''
       }
       if (this.form.price) {

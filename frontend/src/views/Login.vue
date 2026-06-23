@@ -152,17 +152,30 @@ export default {
           }
         })
 
-        // Success: store auth credentials
+        // Success: set temporary auth header to fetch user info
+        axios.defaults.headers.common['Authorization'] = 'Basic ' + token
+
+        // Fetch users to find the role and ID of the logged-in user
+        const usersResponse = await axios.get('http://localhost:8000/api/users/')
+        const currentUser = usersResponse.data.find(
+          u => u.username.toLowerCase() === this.username.toLowerCase()
+        )
+        const role = currentUser ? currentUser.role : 'admin'
+        const userId = currentUser ? currentUser.id : null
+
+        // Store auth credentials and user metadata in localStorage
         localStorage.setItem('auth_token', token)
         localStorage.setItem('username', this.username)
-        localStorage.setItem('user_role', 'admin')
-
-        // Apply auth header to all subsequent axios requests
-        axios.defaults.headers.common['Authorization'] = 'Basic ' + token
+        localStorage.setItem('user_role', role)
+        if (userId) {
+          localStorage.setItem('user_id', String(userId))
+        }
 
         this.loading = false
         this.$router.push('/')
       } catch (err) {
+        // Clear any half-set auth headers on login failure
+        delete axios.defaults.headers.common['Authorization']
         this.loading = false
         if (err.response && err.response.status === 401) {
           this.error = 'Invalid username or password.'

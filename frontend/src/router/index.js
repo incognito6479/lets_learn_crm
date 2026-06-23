@@ -11,6 +11,8 @@ import Groups from '../views/Groups.vue'
 import GroupDetail from '../views/GroupDetail.vue'
 import DebtList from '../views/DebtList.vue'
 import EnrollmentDetail from '../views/EnrollmentDetail.vue'
+import Timetable from '../views/Timetable.vue'
+import TeacherDetail from '../views/TeacherDetail.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -24,7 +26,9 @@ const routes = [
   { path: '/groups', name: 'Groups', component: Groups },
   { path: '/groups/:id', name: 'GroupDetail', component: GroupDetail },
   { path: '/debts', name: 'DebtList', component: DebtList },
-  { path: '/enrollments/:id', name: 'EnrollmentDetail', component: EnrollmentDetail }
+  { path: '/enrollments/:id', name: 'EnrollmentDetail', component: EnrollmentDetail },
+  { path: '/timetable', name: 'Timetable', component: Timetable },
+  { path: '/teachers/:id', name: 'TeacherDetail', component: TeacherDetail }
 ]
 
 const router = createRouter({
@@ -35,11 +39,24 @@ const router = createRouter({
 // Authentication guard
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('auth_token')
+  const role = localStorage.getItem('user_role')
+
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && isAuthenticated) {
-    next({ name: 'Home' })
+    if (role === 'teacher') {
+      next({ name: 'Timetable' })
+    } else {
+      next({ name: 'Home' })
+    }
   } else {
+    if (isAuthenticated && role === 'teacher') {
+      const allowedRoutesForTeacher = ['Timetable', 'Groups', 'GroupDetail', 'Login']
+      if (!allowedRoutesForTeacher.includes(to.name)) {
+        next({ name: 'Timetable' })
+        return
+      }
+    }
     next()
   }
 })

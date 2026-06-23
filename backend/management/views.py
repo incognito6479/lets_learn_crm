@@ -2,11 +2,11 @@ from rest_framework import viewsets, permissions
 from django.utils import timezone
 from django.db.models import Sum
 from .models import Enrollment
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade
 from .serializers import (
     BranchSerializer, UserSerializer, StudentSerializer, 
     RoomSerializer, CourseSerializer, GroupSerializer, 
-    EnrollmentSerializer, PaymentSerializer
+    EnrollmentSerializer, PaymentSerializer, GradeSerializer
 )
 
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
@@ -26,7 +26,7 @@ class UserViewSet(SoftDeleteModelViewSet):
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        return self.queryset
+        return self.queryset.all()
 
 class StudentViewSet(SoftDeleteModelViewSet):
     queryset = Student.objects.all()
@@ -52,18 +52,25 @@ class EnrollmentViewSet(SoftDeleteModelViewSet):
         instance.status = 'dropped'
         instance.save()
 
-class PaymentViewSet(SoftDeleteModelViewSet):
+class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
 
     def perform_create(self, serializer):
         payment = serializer.save()
-        # Recalculate debt status for this student and group
         enrollment = Enrollment.objects.filter(
             student=payment.student,
             group=payment.group,
             is_active=True
         ).first()
-        
         if enrollment:
             enrollment.check_debt()
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.status = 'canceled'
+        instance.save()
+
+class GradeViewSet(SoftDeleteModelViewSet):
+    queryset = Grade.objects.all()
+    serializer_class = GradeSerializer

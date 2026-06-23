@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade
 
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,7 +9,26 @@ class BranchSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'phone_number', 'role', 'branch', 'first_name', 'last_name', 'is_active')
+        fields = ('id', 'username', 'phone_number', 'role', 'branch', 'first_name', 'last_name', 'is_active', 'password')
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False}
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().create(validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().update(instance, validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,4 +59,30 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
-        exclude = ('created_at', 'is_active')
+        exclude = ('created_at',)
+
+class GradeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Grade
+        exclude = ('created_at',)
+
+    def validate(self, attrs):
+        enrolled_student = attrs.get('enrolled_student')
+        group = attrs.get('group')
+        grade = attrs.get('grade')
+
+        if grade is not None and (grade < 0 or grade > 5):
+            raise serializers.ValidationError({"grade": "Grade must be between 0 and 5."})
+
+        if enrolled_student and group:
+            enrollment_exists = Enrollment.objects.filter(
+                student=enrolled_student,
+                group=group,
+                is_active=True
+            ).exists()
+            if not enrollment_exists:
+                raise serializers.ValidationError({
+                    "enrolled_student": f"Student is not actively enrolled in the specified group."
+                })
+
+        return attrs

@@ -51,7 +51,11 @@
           <tbody>
             <tr v-for="teacher in filteredTeachers" :key="teacher.id" class="table-row">
               <td class="font-mono text-muted">#{{ teacher.id }}</td>
-              <td class="font-semibold">{{ teacher.first_name }} {{ teacher.last_name }}</td>
+              <td class="font-semibold">
+                <router-link :to="`/teachers/${teacher.id}`" class="teacher-link">
+                  {{ teacher.first_name }} {{ teacher.last_name }}
+                </router-link>
+              </td>
               <td>{{ teacher.username }}</td>
               <td>{{ teacher.phone_number || '-' }}</td>
               <td>
@@ -144,13 +148,13 @@
                 :disabled="isEdit"
               />
             </div>
-            <div class="form-group" v-if="!isEdit">
-              <label for="password" class="form-label">Password</label>
+            <div class="form-group">
+              <label for="password" class="form-label">Password {{ isEdit ? '(leave blank to keep current)' : '' }}</label>
               <input
                 type="password"
                 id="password"
                 v-model="form.password"
-                required
+                :required="!isEdit"
                 placeholder="Enter account password..."
                 class="form-input"
               />
@@ -245,8 +249,8 @@ export default {
 
       try {
         const [usersRes, branchesRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/branches/')
+          axios.get(`http://localhost:8000/api/users/`),
+          axios.get(`http://localhost:8000/api/branches/`)
         ])
         this.branches = branchesRes.data
         // Filter users who are teachers
@@ -288,9 +292,11 @@ export default {
 
       try {
         if (this.isEdit) {
-          // Avoid sending password if empty during edits
           const editPayload = { ...this.form }
-          delete editPayload.password
+          // Only send password if user entered a new one
+          if (!editPayload.password) {
+            delete editPayload.password
+          }
           await axios.put(`http://localhost:8000/api/users/${this.form.id}/`, editPayload)
         } else {
           await axios.post('http://localhost:8000/api/users/', this.form)
@@ -328,4 +334,16 @@ export default {
 
 <style scoped>
 @import '../assets/views.css';
+
+.teacher-link {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.teacher-link:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
 </style>

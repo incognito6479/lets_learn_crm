@@ -14,41 +14,45 @@
       </div>
       
       <nav class="sidebar-nav">
-        <router-link to="/" class="nav-item">
+        <router-link v-if="userRole !== 'teacher'" to="/" class="nav-item">
           <span class="nav-icon">📊</span>
-          <span class="nav-text">Home</span>
+          <span class="nav-text">Statistics</span>
         </router-link>
-        <router-link to="/students" class="nav-item">
-          <span class="nav-icon">🎓</span>
-          <span class="nav-text">Students</span>
-        </router-link>
-        <router-link to="/teachers" class="nav-item">
-          <span class="nav-icon">👨‍🏫</span>
-          <span class="nav-text">Teachers</span>
-        </router-link>
-        <router-link to="/rooms" class="nav-item">
-          <span class="nav-icon">🏫</span>
-          <span class="nav-text">Rooms</span>
-        </router-link>
-        <router-link to="/branches" class="nav-item">
-          <span class="nav-icon">🏢</span>
-          <span class="nav-text">Branches</span>
-        </router-link>
-        <router-link to="/courses" class="nav-item">
-          <span class="nav-icon">📚</span>
-          <span class="nav-text">Courses</span>
+        <router-link to="/timetable" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span class="nav-text">Timetable</span>
         </router-link>
         <router-link to="/groups" class="nav-item">
           <span class="nav-icon">👥</span>
           <span class="nav-text">Groups</span>
         </router-link>
-        <router-link to="/payments" class="nav-item">
+        <router-link v-if="userRole !== 'teacher'" to="/payments" class="nav-item">
           <span class="nav-icon">💰</span>
           <span class="nav-text">Payments</span>
         </router-link>
-        <router-link to="/debts" class="nav-item">
+        <router-link v-if="userRole !== 'teacher'" to="/debts" class="nav-item">
           <span class="nav-icon">⚠️</span>
           <span class="nav-text">Debts</span>
+        </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/students" class="nav-item">
+          <span class="nav-icon">🎓</span>
+          <span class="nav-text">Students</span>
+        </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/teachers" class="nav-item">
+          <span class="nav-icon">👨‍🏫</span>
+          <span class="nav-text">Teachers</span>
+        </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/rooms" class="nav-item">
+          <span class="nav-icon">🏫</span>
+          <span class="nav-text">Rooms</span>
+        </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/branches" class="nav-item">
+          <span class="nav-icon">🏢</span>
+          <span class="nav-text">Branches</span>
+        </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/courses" class="nav-item">
+          <span class="nav-icon">📚</span>
+          <span class="nav-text">Courses</span>
         </router-link>
       </nav>
     </aside>
@@ -88,7 +92,8 @@ export default {
   name: 'App',
   data() {
     return {
-      username: ''
+      username: '',
+      userRole: ''
     }
   },
   computed: {
@@ -116,6 +121,7 @@ export default {
   methods: {
     updateUser() {
       this.username = localStorage.getItem('username') || ''
+      this.userRole = localStorage.getItem('user_role') || ''
     },
     logout() {
       // Clear storage

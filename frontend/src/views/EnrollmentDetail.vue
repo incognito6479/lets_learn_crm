@@ -91,6 +91,10 @@
                 <span class="field-value">{{ formatTime(group.starts_at) }}</span>
               </div>
               <div class="info-field">
+                <span class="field-label">Days</span>
+                <span class="field-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
+              </div>
+              <div class="info-field">
                 <span class="field-label">Duration</span>
                 <span class="field-value">{{ group.duration }} minutes</span>
               </div>
@@ -208,10 +212,15 @@
                 <div class="timeline-marker"></div>
                 <div class="timeline-content">
                   <div class="timeline-header">
-                    <span class="timeline-amount">{{ formatPrice(payment.amount) }} UZS</span>
-                    <span :class="['status-badge', payment.payment_method || 'cash']">
-                      {{ formatMethod(payment.payment_method) }}
-                    </span>
+                    <span class="timeline-amount" :style="!payment.is_active || payment.status === 'canceled' ? 'text-decoration: line-through; color: #94a3b8;' : ''">{{ formatPrice(payment.amount) }} UZS</span>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                      <span :class="['status-badge', payment.payment_method || 'cash']">
+                        {{ formatMethod(payment.payment_method) }}
+                      </span>
+                      <span :class="['status-badge', payment.status || 'accepted']">
+                        {{ payment.status || 'accepted' }}
+                      </span>
+                    </div>
                   </div>
                   <span class="timeline-date">{{ formatDateTime(payment.payment_date) }}</span>
                   <p class="timeline-desc">{{ payment.description || 'No description provided.' }}</p>
@@ -329,7 +338,9 @@ export default {
       ).sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
     },
     totalPaymentsForGroup() {
-      return this.paymentsForGroup.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+      return this.paymentsForGroup
+        .filter(p => p.is_active && p.status === 'accepted')
+        .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
     },
     studentEnrollments() {
       if (!this.allEnrollments.length || !this.enrollment) return []
@@ -794,6 +805,16 @@ export default {
 .status-badge.card {
   background-color: #f3e8ff;
   color: #6b21a8;
+}
+
+.status-badge.accepted {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.canceled {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 
 .loading-state-full {
