@@ -53,7 +53,7 @@
       </div>
 
       <div v-else class="timetable-wrapper">
-        <div class="timetable-grid" :style="{ gridTemplateRows: `40px repeat(${layout.totalRows}, 80px)` }">
+        <div class="timetable-grid" :style="{ gridTemplateRows: `40px repeat(${layout.totalRows}, 50px)` }">
           <!-- Top Left Empty corner -->
           <div class="grid-header-cell day-time-corner">{{ $t('timetable.day_time') }}</div>
 
@@ -94,7 +94,6 @@
             ></div>
           </template>
 
-          <!-- Group Cards Overlay -->
           <div 
             v-for="card in layout.positionedCards" 
             :key="card.key"
@@ -107,16 +106,11 @@
               color: card.color.text,
               borderLeftColor: card.color.border
             }"
+            :title="`${card.name}\n👤 ${card.teacherName}\n🏫 ${card.roomName} (${card.branchName})\n🕒 ${card.starts_at} - ${card.ends_at}`"
             @click="navigateToGroup(card.groupId)"
           >
-            <div class="card-top">
-              <span class="group-card-name" :title="card.name">{{ card.name }}</span>
-              <span class="group-card-time">{{ card.starts_at }} - {{ card.ends_at }}</span>
-            </div>
-            <div class="card-bottom">
-              <span class="group-card-teacher">👤 {{ card.teacherName }}</span>
-              <span class="group-card-room">🏫 {{ card.roomName }} ({{ card.branchName }})</span>
-            </div>
+            <span class="group-card-name">{{ card.name }}</span>
+            <span class="group-card-teacher">👤 {{ card.teacherName }}</span>
           </div>
         </div>
       </div>
@@ -375,8 +369,8 @@ export default {
   display: grid;
   /* Column 1 is Day header (100px). Next 36 columns are 15-min intervals */
   grid-template-columns: 100px repeat(36, 1fr);
-  /* Row 1 is Time header (40px). Next 6 rows are Days of week (80px height each) */
-  grid-template-rows: 40px repeat(6, 80px);
+  /* Row 1 is Time header (40px). Next 6 rows are Days of week (50px height each) */
+  grid-template-rows: 40px repeat(6, 50px);
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   background-color: #ffffff;
@@ -444,13 +438,14 @@ export default {
   position: relative;
   z-index: 5;
   margin: 2px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border-left: 4px solid;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  padding: 4px 6px;
+  border-radius: 6px;
+  border-left: 3px solid;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 1px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
@@ -472,8 +467,8 @@ export default {
 
 .group-card-name {
   font-weight: 700;
-  font-size: 0.85rem;
-  line-height: 1.2;
+  font-size: 0.75rem;
+  line-height: 1.1;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;

@@ -28,7 +28,7 @@
         <select v-model="selectedGroup" class="form-input">
           <option value="">{{ $t('payments.filter_group') }}</option>
           <option v-for="group in groups" :key="group.id" :value="group.id">
-            {{ group.name }} ({{ formatTime(group.starts_at) }}, {{ group.group_days_at || 'Mon-Wed-Fri' }})
+            {{ group.name }} ({{ formatTime(group.starts_at) }}, {{ $t('groups.' + (group.group_days_at || 'Mon-Wed-Fri')) }})
           </option>
         </select>
       </div>

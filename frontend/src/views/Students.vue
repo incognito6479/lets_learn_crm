@@ -111,24 +111,38 @@
             </div>
             <div class="form-group">
               <label for="phone1" class="form-label">{{ $t('students.col_phone1') }}</label>
-              <input
-                type="text"
-                id="phone1"
-                v-model="form.phone1"
-                required
-                :placeholder="$t('groupDetail.student_phone1_placeholder')"
-                class="form-input"
-              />
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="phone1"
+                  :value="form.phone1"
+                  @input="handlePhoneInput($event, 'phone1')"
+                  @keypress="onlyNumber"
+                  required
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                />
+              </div>
             </div>
             <div class="form-group">
               <label for="phone2" class="form-label">{{ $t('students.col_phone2') }}</label>
-              <input
-                type="text"
-                id="phone2"
-                v-model="form.phone2"
-                :placeholder="$t('groupDetail.student_phone2_placeholder')"
-                class="form-input"
-              />
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="phone2"
+                  :value="form.phone2"
+                  @input="handlePhoneInput($event, 'phone2')"
+                  @keypress="onlyNumber"
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                />
+              </div>
             </div>
             <div class="form-group">
               <label for="description" class="form-label">{{ $t('common.description') }}</label>
@@ -218,8 +232,8 @@ export default {
       this.form = {
         id: student.id,
         full_name: student.full_name,
-        phone1: student.phone1,
-        phone2: student.phone2 || '',
+        phone1: this.parsePhoneForInput(student.phone1),
+        phone2: this.parsePhoneForInput(student.phone2 || ''),
         description: student.description || ''
       }
       this.showModal = true
@@ -229,11 +243,32 @@ export default {
     },
     async saveStudent() {
       this.submitting = true
+      
+      const rawPhone1 = this.form.phone1.replace(/\D/g, '')
+      if (rawPhone1.length !== 9) {
+        alert(this.$t('students.phone_length_error'))
+        this.submitting = false
+        return
+      }
+      if (this.form.phone2) {
+        const rawPhone2 = this.form.phone2.replace(/\D/g, '')
+        if (rawPhone2.length !== 9) {
+          alert(this.$t('students.phone_length_error'))
+          this.submitting = false
+          return
+        }
+      }
+
+      const payload = {
+        ...this.form,
+        phone1: '+998' + rawPhone1,
+        phone2: this.form.phone2 ? ('+998' + this.form.phone2.replace(/\D/g, '')) : null
+      }
       try {
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/students/${this.form.id}/`, this.form)
+          await axios.put(`http://localhost:8000/api/students/${this.form.id}/`, payload)
         } else {
-          await axios.post('http://localhost:8000/api/students/', this.form)
+          await axios.post('http://localhost:8000/api/students/', payload)
         }
         this.submitting = false
         this.closeModal()
@@ -257,6 +292,66 @@ export default {
         console.error('Error deleting student:', err)
         alert(this.$t('common.error_delete'))
       }
+    },
+    formatPhoneInput(val) {
+      if (!val) return ''
+      const digits = val.replace(/\D/g, '').slice(0, 9)
+      let formatted = ''
+      if (digits.length > 0) {
+        formatted += digits.substring(0, 2)
+      }
+      if (digits.length > 2) {
+        formatted += ' ' + digits.substring(2, 5)
+      }
+      if (digits.length > 5) {
+        formatted += ' ' + digits.substring(5, 7)
+      }
+      if (digits.length > 7) {
+        formatted += ' ' + digits.substring(7, 9)
+      }
+      return formatted
+    },
+    handlePhoneInput(e, field) {
+      const input = e.target
+      const rawValue = input.value
+      
+      const selectionStart = input.selectionStart
+      const digitsBefore = rawValue.substring(0, selectionStart).replace(/\D/g, '').length
+      
+      const formatted = this.formatPhoneInput(rawValue)
+      this.form[field] = formatted
+      
+      this.$nextTick(() => {
+        let newCursorPos = 0
+        let digitCount = 0
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            digitCount++
+          }
+          newCursorPos = i + 1
+          if (digitCount === digitsBefore) {
+            break
+          }
+        }
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+    parsePhoneForInput(phoneStr) {
+      if (!phoneStr) return ''
+      let localPart = phoneStr
+      if (phoneStr.startsWith('+998')) {
+        localPart = phoneStr.substring(4)
+      } else if (phoneStr.startsWith('998')) {
+        localPart = phoneStr.substring(3)
+      }
+      return this.formatPhoneInput(localPart)
+    },
+    onlyNumber(event) {
+      const charCode = event.which ? event.which : event.keyCode
+      if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+        event.preventDefault()
+      }
+      return true
     }
   }
 }

@@ -92,7 +92,7 @@
                   <td style="padding: 1rem;">{{ getCourseName(group.course) }}</td>
                   <td style="padding: 1rem;">{{ getBranchName(group.branch) }} ({{ getRoomName(group.room) }})</td>
                   <td style="padding: 1rem;">
-                    <div style="font-weight: 500; color: #334155;">{{ group.group_days_at || 'Mon-Wed-Fri' }}</div>
+                    <div style="font-weight: 500; color: #334155;">{{ $t('groups.' + (group.group_days_at || 'Mon-Wed-Fri')) }}</div>
                     <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;">{{ formatTime(group.starts_at) }} ({{ group.duration }}m)</div>
                   </td>
                   <td style="padding: 1rem; font-weight: 500; font-family: monospace;">{{ formatPrice(group.price) }} UZS</td>

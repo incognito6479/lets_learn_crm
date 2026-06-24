@@ -77,7 +77,7 @@
               <td>{{ getCourseName(group.course) }}</td>
               <td>{{ getTeacherName(group.teacher) }}</td>
               <td>{{ getRoomName(group.room) }}</td>
-              <td>{{ group.group_days_at || 'Mon-Wed-Fri' }}</td>
+              <td>{{ $t('groups.' + (group.group_days_at || 'Mon-Wed-Fri')) }}</td>
               <td>{{ getBranchName(group.branch) }}</td>
               <td>
                 <span :class="['status-badge', group.status || 'enrolled']">
@@ -248,9 +248,9 @@
               <div class="form-group">
                 <label for="groupDays" class="form-label">{{ $t('groups.col_days') }}</label>
                 <select id="groupDays" v-model="form.group_days_at" required class="form-input">
-                  <option value="Mon-Wed-Fri">Mon-Wed-Fri</option>
-                  <option value="Tue-Thur-Sat">Tue-Thur-Sat</option>
-                  <option value="Everyday">Everyday</option>
+                  <option value="Mon-Wed-Fri">{{ $t('groups.Mon-Wed-Fri') }}</option>
+                  <option value="Tue-Thur-Sat">{{ $t('groups.Tue-Thur-Sat') }}</option>
+                  <option value="Everyday">{{ $t('groups.Everyday') }}</option>
                 </select>
               </div>
  

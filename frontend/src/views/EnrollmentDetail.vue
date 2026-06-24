@@ -92,7 +92,7 @@
               </div>
               <div class="info-field">
                 <span class="field-label">{{ $t('groupDetail.days') }}</span>
-                <span class="field-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
+                <span class="field-value">{{ $t('groups.' + (group.group_days_at || 'Mon-Wed-Fri')) }}</span>
               </div>
               <div class="info-field">
                 <span class="field-label">{{ $t('groupDetail.duration') }}</span>

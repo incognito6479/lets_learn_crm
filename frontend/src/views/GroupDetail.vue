@@ -21,6 +21,15 @@
         <span :class="['status-badge', group.status || 'ongoing']" style="font-size: 0.95rem; padding: 0.4rem 1rem;">
           {{ $t('groups.status_' + (group.status || 'ongoing')) }}
         </span>
+        <button 
+          v-if="group.status !== 'finished' && userRole !== 'teacher'"
+          @click="confirmFinishGroup" 
+          class="btn btn-danger"
+          style="background-color: #ef4444;"
+          :disabled="submittingFinishGroup"
+        >
+          {{ $t('groupDetail.finish_group_btn') }}
+        </button>
       </div>
     </div>
 
@@ -62,7 +71,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">{{ $t('groupDetail.days') }}</span>
-              <span class="info-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
+              <span class="info-value">{{ $t('groups.' + (group.group_days_at || 'Mon-Wed-Fri')) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">{{ $t('groupDetail.duration') }}</span>
@@ -444,27 +453,39 @@
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
               <label for="newStudentPhone1" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('groupDetail.student_phone1') }}</label>
-              <input
-                type="text"
-                id="newStudentPhone1"
-                v-model="studentForm.phone1"
-                required
-                :placeholder="$t('groupDetail.student_phone1_placeholder')"
-                class="form-input"
-                style="width: 100%; box-sizing: border-box;"
-              />
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="newStudentPhone1"
+                  :value="studentForm.phone1"
+                  @input="handleStudentPhoneInput($event, 'phone1')"
+                  @keypress="onlyNumber"
+                  required
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                />
+              </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
               <label for="newStudentPhone2" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('groupDetail.student_phone2') }}</label>
-              <input
-                type="text"
-                id="newStudentPhone2"
-                v-model="studentForm.phone2"
-                :placeholder="$t('groupDetail.student_phone2_placeholder')"
-                class="form-input"
-                style="width: 100%; box-sizing: border-box;"
-              />
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="newStudentPhone2"
+                  :value="studentForm.phone2"
+                  @input="handleStudentPhoneInput($event, 'phone2')"
+                  @keypress="onlyNumber"
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                />
+              </div>
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
@@ -532,6 +553,7 @@ export default {
         description: ''
       },
       submittingPayment: false,
+      submittingFinishGroup: false,
 
       // Create student modal state
       showCreateStudentModal: false,
@@ -609,6 +631,44 @@ export default {
     this.fetchData()
   },
   methods: {
+    async confirmFinishGroup() {
+      const debtStudents = this.enrolledStudents.filter(s => s.status === 'enrolled' && s.payment_status === 'debt')
+      
+      if (debtStudents.length > 0) {
+        const studentDetails = debtStudents.map(s => {
+          const debtFormatted = this.formatPrice(s.debt_amount)
+          return `- ${s.full_name} (${debtFormatted} ${this.$t('common.uzs')})`
+        }).join('\n')
+        
+        alert(this.$t('groupDetail.finish_group_debt_error', { students: studentDetails }))
+        return
+      }
+      
+      if (!confirm(this.$t('groupDetail.finish_group_confirm'))) {
+        return
+      }
+      
+      this.submittingFinishGroup = true
+      try {
+        await axios.patch(`http://localhost:8000/api/groups/${this.group.id}/`, {
+          status: 'finished'
+        })
+        alert(this.$t('groupDetail.finish_group_success'))
+        this.fetchData()
+      } catch (err) {
+        console.error('Error finishing group:', err)
+        const errorMsg = err.response && err.response.data && typeof err.response.data === 'string'
+          ? err.response.data
+          : (err.response && err.response.data && err.response.data.detail
+            ? err.response.data.detail
+            : (err.response && err.response.data && typeof err.response.data === 'object'
+              ? Object.values(err.response.data).join(', ')
+              : ''))
+        alert(errorMsg || 'Failed to finish the group.')
+      } finally {
+        this.submittingFinishGroup = false
+      }
+    },
     async fetchData() {
       this.loading = true
       this.error = null
@@ -897,8 +957,29 @@ export default {
     },
     async saveNewStudent() {
       this.submittingNewStudent = true
+      
+      const rawPhone1 = this.studentForm.phone1.replace(/\D/g, '')
+      if (rawPhone1.length !== 9) {
+        alert(this.$t('students.phone_length_error'))
+        this.submittingNewStudent = false
+        return
+      }
+      if (this.studentForm.phone2) {
+        const rawPhone2 = this.studentForm.phone2.replace(/\D/g, '')
+        if (rawPhone2.length !== 9) {
+          alert(this.$t('students.phone_length_error'))
+          this.submittingNewStudent = false
+          return
+        }
+      }
+
+      const payload = {
+        ...this.studentForm,
+        phone1: '+998' + rawPhone1,
+        phone2: this.studentForm.phone2 ? ('+998' + this.studentForm.phone2.replace(/\D/g, '')) : null
+      }
       try {
-        const response = await axios.post('http://localhost:8000/api/students/', this.studentForm)
+        const response = await axios.post('http://localhost:8000/api/students/', payload)
         const newStudent = response.data
         
         // Refresh students list
@@ -919,6 +1000,56 @@ export default {
       } finally {
         this.submittingNewStudent = false
       }
+    },
+    formatStudentPhoneInput(val) {
+      if (!val) return ''
+      const digits = val.replace(/\D/g, '').slice(0, 9)
+      let formatted = ''
+      if (digits.length > 0) {
+        formatted += digits.substring(0, 2)
+      }
+      if (digits.length > 2) {
+        formatted += ' ' + digits.substring(2, 5)
+      }
+      if (digits.length > 5) {
+        formatted += ' ' + digits.substring(5, 7)
+      }
+      if (digits.length > 7) {
+        formatted += ' ' + digits.substring(7, 9)
+      }
+      return formatted
+    },
+    handleStudentPhoneInput(e, field) {
+      const input = e.target
+      const rawValue = input.value
+      
+      const selectionStart = input.selectionStart
+      const digitsBefore = rawValue.substring(0, selectionStart).replace(/\D/g, '').length
+      
+      const formatted = this.formatStudentPhoneInput(rawValue)
+      this.studentForm[field] = formatted
+      
+      this.$nextTick(() => {
+        let newCursorPos = 0
+        let digitCount = 0
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            digitCount++
+          }
+          newCursorPos = i + 1
+          if (digitCount === digitsBefore) {
+            break
+          }
+        }
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+    onlyNumber(event) {
+      const charCode = event.which ? event.which : event.keyCode
+      if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+        event.preventDefault()
+      }
+      return true
     },
     getInitials(name) {
       if (!name) return ''

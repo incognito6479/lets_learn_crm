@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions
 from django.utils import timezone
 from django.db.models import Sum
+from rest_framework.exceptions import ValidationError
 from .models import Enrollment
 from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
 from .serializers import (
@@ -43,6 +44,24 @@ class CourseViewSet(SoftDeleteModelViewSet):
 class GroupViewSet(SoftDeleteModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        new_status = serializer.validated_data.get('status', instance.status)
+        
+        if new_status == 'finished' and instance.status != 'finished':
+            has_debt = Enrollment.objects.filter(
+                group=instance,
+                status='enrolled',
+                payment_status='debt'
+            ).exists()
+            if has_debt:
+                raise ValidationError("Cannot finish group because some enrolled students have outstanding debt.")
+        
+        group = serializer.save()
+        
+        if group.status == 'finished' and instance.status != 'finished':
+            Enrollment.objects.filter(group=group, status='enrolled').update(status='finished')
 
 class EnrollmentViewSet(SoftDeleteModelViewSet):
     queryset = Enrollment.objects.all()

@@ -114,7 +114,10 @@ const translations = {
       form_status: "Статус группы",
       status_ongoing: "Идет",
       status_finished: "Завершено",
-      status_upcoming: "Предстоит"
+      status_upcoming: "Предстоит",
+      "Mon-Wed-Fri": "Пн-Ср-Пт",
+      "Tue-Thur-Sat": "Вт-Чт-Сб",
+      "Everyday": "Каждый день"
     },
     groupDetail: {
       back: "Назад к группам",
@@ -192,7 +195,12 @@ const translations = {
       error_absence: "Не удалось обновить посещаемость студента.",
       error_enroll: "Произошла ошибка при зачислении студентов.",
       error_payment: "Произошла ошибка при подтверждении платежа.",
-      error_create_student: "Произошла ошибка при создании студента."
+      error_create_student: "Произошла ошибка при создании студента.",
+      status_finished: "Завершено",
+      finish_group_btn: "Завершить группу",
+      finish_group_confirm: "Вы уверены, что хотите завершить эту группу? Все зачисленные студенты будут отмечены как завершившие обучение.",
+      finish_group_success: "Группа успешно завершена.",
+      finish_group_debt_error: "Невозможно завершить группу: у следующих зачисленных студентов есть задолженность:\n{students}\n\nПожалуйста, закройте все долги перед завершением группы."
     },
     payments: {
       title: "Платежи",
@@ -254,7 +262,8 @@ const translations = {
       no_students: "Студенты не найдены.",
       delete_confirm: "Вы уверены, что хотите удалить студента \"{name}\"?",
       modal_new: "Добавить студента",
-      modal_edit: "Редактировать студента"
+      modal_edit: "Редактировать студента",
+      phone_length_error: "Номер телефона должен состоять ровно из 9 цифр (+998 XX XXX XX XX)"
     },
     teachers: {
       title: "Преподаватели",
@@ -479,7 +488,10 @@ const translations = {
       form_status: "Guruh statusi",
       status_ongoing: "Faol",
       status_finished: "Tugatilgan",
-      status_upcoming: "Kutilayotgan"
+      status_upcoming: "Kutilayotgan",
+      "Mon-Wed-Fri": "Dush-Chor-Jum",
+      "Tue-Thur-Sat": "Sesh-Pay-Shan",
+      "Everyday": "Har kuni"
     },
     groupDetail: {
       back: "Guruhlarga qaytish",
@@ -557,7 +569,12 @@ const translations = {
       error_absence: "Talaba davomatini yangilab bo'lmadi.",
       error_enroll: "Talabalarni guruhga qo'shishda xatolik yuz berdi.",
       error_payment: "To'lovni tasdiqlashda xatolik yuz berdi.",
-      error_create_student: "Talaba yaratishda xatolik yuz berdi."
+      error_create_student: "Talaba yaratishda xatolik yuz berdi.",
+      status_finished: "Tugatilgan",
+      finish_group_btn: "Guruhni yakunlash",
+      finish_group_confirm: "Haqiqatan ham ushbu guruhni yakunlamoqchimisiz? Guruhdagi barcha talabalar o'qishni tamomlagan deb belgilanadi.",
+      finish_group_success: "Guruh muvaffaqiyatli yakunlandi.",
+      finish_group_debt_error: "Guruhni yakunlash imkonsiz: quyidagi faol talabalarda qarzdorlik mavjud:\n{students}\n\nGuruhni yakunlashdan avval qarzlarni yopish talab etiladi."
     },
     payments: {
       title: "To'lovlar",
@@ -619,7 +636,8 @@ const translations = {
       no_students: "Talabalar topilmadi.",
       delete_confirm: "Haqiqatan ham talaba \"{name}\"ni tizimdan o'chirmoqchimisiz?",
       modal_new: "Yangi talaba qo'shish",
-      modal_edit: "Talaba ma'lumotlarini tahrirlash"
+      modal_edit: "Talaba ma'lumotlarini tahrirlash",
+      phone_length_error: "Telefon raqami roppa-rosa 9 ta raqamdan iborat bo'lishi kerak (+998 XX XXX XX XX)"
     },
     teachers: {
       title: "O'qituvchilar",
