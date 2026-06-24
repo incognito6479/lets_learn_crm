@@ -7,19 +7,19 @@
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back to Groups
+        {{ $t('groupDetail.back') }}
       </router-link>
     </div>
 
     <!-- View Header -->
     <div class="view-header" style="margin-top: 1rem;">
       <div>
-        <h1 class="view-title">{{ group ? group.name : 'Loading Group...' }}</h1>
-        <p class="view-subtitle">Detailed information and enrolled students roster</p>
+        <h1 class="view-title">{{ group ? group.name : $t('groupDetail.loading') }}</h1>
+        <p class="view-subtitle">{{ $t('groupDetail.details_sub') }}</p>
       </div>
       <div v-if="group" style="display: flex; gap: 1rem; align-items: center;">
-        <span :class="['status-badge', group.status || 'enrolled']" style="font-size: 0.95rem; padding: 0.4rem 1rem;">
-          {{ group.status || 'enrolled' }}
+        <span :class="['status-badge', group.status || 'ongoing']" style="font-size: 0.95rem; padding: 0.4rem 1rem;">
+          {{ $t('groups.status_' + (group.status || 'ongoing')) }}
         </span>
       </div>
     </div>
@@ -34,47 +34,47 @@
       <!-- Top Section: Group Metadata -->
       <div class="sidebar-column">
         <div class="info-card">
-          <h3 class="info-card-title">Group Details</h3>
+          <h3 class="info-card-title">{{ $t('groupDetail.details_title') }}</h3>
           <div class="info-details-list">
             <div class="info-item">
-              <span class="info-label">Course</span>
+              <span class="info-label">{{ $t('groupDetail.course') }}</span>
               <span class="info-value font-semibold">{{ getCourseName(group.course) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Teacher</span>
+              <span class="info-label">{{ $t('groupDetail.teacher') }}</span>
               <span class="info-value">{{ getTeacherName(group.teacher) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Location (Room)</span>
+              <span class="info-label">{{ $t('groupDetail.room') }}</span>
               <span class="info-value">{{ getRoomName(group.room) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Campus Branch</span>
+              <span class="info-label">{{ $t('groupDetail.branch') }}</span>
               <span class="info-value">{{ getBranchName(group.branch) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Start Date</span>
+              <span class="info-label">{{ $t('groupDetail.start_date') }}</span>
               <span class="info-value">{{ formatDate(group.started_at) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Schedule Time</span>
+              <span class="info-label">{{ $t('groupDetail.time') }}</span>
               <span class="info-value font-mono">{{ formatTime(group.starts_at) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Days</span>
+              <span class="info-label">{{ $t('groupDetail.days') }}</span>
               <span class="info-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Duration</span>
-              <span class="info-value">{{ group.duration }} minutes</span>
+              <span class="info-label">{{ $t('groupDetail.duration') }}</span>
+              <span class="info-value">{{ $t('groupDetail.duration_value', { val: group.duration }) }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Price</span>
+              <span class="info-label">{{ $t('groupDetail.price') }}</span>
               <span class="info-value font-mono font-semibold">{{ formatPrice(group.price) }} UZS</span>
             </div>
           </div>
           <div class="info-description-box" v-if="group.description">
-            <span class="info-label" style="display: block; margin-bottom: 0.4rem;">Description</span>
+            <span class="info-label" style="display: block; margin-bottom: 0.4rem;">{{ $t('common.description') }}</span>
             <p class="description-text">{{ group.description }}</p>
           </div>
         </div>
@@ -82,22 +82,16 @@
 
       <!-- Bottom Section: Students Roster -->
       <div class="main-column">
-        <div class="table-card">
+        <!-- Enrolled Students (Hidden for teachers) -->
+        <div v-if="userRole !== 'teacher'" class="table-card">
           <div class="table-header-bar">
-            <h2 class="card-section-title">Enrolled Students</h2>
+            <h2 class="card-section-title">{{ $t('groupDetail.enrolled_students') }}</h2>
             <button v-if="userRole !== 'teacher'" @click="openEnrollModal" class="btn btn-primary btn-sm">
               <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              Enroll a Student
-            </button>
-            <button v-if="userRole === 'teacher'" @click="openGradeModal" class="btn btn-primary btn-sm">
-              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Grade Students
+              {{ $t('groupDetail.enroll_student') }}
             </button>
           </div>
           <div class="table-wrapper">
@@ -105,12 +99,12 @@
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Full Name</th>
-                  <th>Primary Phone</th>
-                   <th>Enrollment Status</th>
-                  <th v-if="userRole !== 'teacher'">Payment Status</th>
-                  <th>Enrollment Date</th>
-                  <th v-if="userRole !== 'teacher'" style="text-align: right;">Actions</th>
+                  <th>{{ $t('groupDetail.student_fullname') }}</th>
+                  <th>{{ $t('groupDetail.student_phone1') }}</th>
+                  <th>{{ $t('groupDetail.enrollment_status') }}</th>
+                  <th v-if="userRole !== 'teacher'">{{ $t('groupDetail.payment_status_label') }}</th>
+                  <th>{{ $t('groupDetail.enrollment_date') }}</th>
+                  <th v-if="userRole !== 'teacher'" style="text-align: right;">{{ $t('common.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,13 +118,13 @@
                   <td>{{ enrolled.phone1 }}</td>
                   <td>
                     <span :class="['status-badge', enrolled.status || 'enrolled']">
-                      {{ enrolled.status || 'enrolled' }}
+                      {{ $t('groupDetail.status_' + (enrolled.status || 'enrolled')) }}
                     </span>
                   </td>
                    <td v-if="userRole !== 'teacher'">
                     <div class="payment-status-cell">
                       <span :class="['status-badge', enrolled.payment_status || 'debt']">
-                        {{ enrolled.payment_status || 'debt' }}
+                        {{ $t('groupDetail.status_' + (enrolled.payment_status || 'debt')) }}
                       </span>
                       <span v-if="(enrolled.payment_status || 'debt') === 'debt'" class="debt-amount">
                         {{ formatPrice(enrolled.debt_amount) }} UZS
@@ -139,9 +133,9 @@
                         v-if="(enrolled.payment_status || 'debt') === 'debt' && enrolled.status !== 'dropped'"
                         @click="openPaymentModal(enrolled)"
                         class="btn-pay"
-                        title="Record Payment"
+                        :title="$t('groupDetail.record_payment_title')"
                       >
-                        Pay
+                        {{ $t('groupDetail.pay') }}
                       </button>
                     </div>
                   </td>
@@ -151,7 +145,7 @@
                       v-if="enrolled.status !== 'dropped'"
                       @click="unenrollStudent(enrolled)"
                       class="btn-icon btn-icon-danger"
-                      title="Unenroll Student"
+                      :title="$t('groupDetail.unenroll_student_title')"
                     >
                       <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -163,43 +157,116 @@
                   </td>
                 </tr>
                  <tr v-if="!enrolledStudents.length">
-                  <td :colspan="userRole === 'teacher' ? 5 : 7" class="empty-state">No students currently enrolled in this group.</td>
-                </tr>
+                   <td :colspan="userRole === 'teacher' ? 5 : 7" class="empty-state">{{ $t('groupDetail.no_students') }}</td>
+                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Graded Students Card -->
-        <div class="table-card" style="margin-top: 1.5rem;">
-          <div class="table-header-bar">
-            <h2 class="card-section-title">Graded Students</h2>
+        <!-- Weekly Attendance & Grading Grid (For teachers only) -->
+        <div v-if="userRole === 'teacher'" class="table-card">
+          <div class="table-header-bar flex-header">
+            <h2 class="card-section-title">{{ $t('groupDetail.weekly_grid') }}</h2>
+            <div class="week-navigation">
+              <button type="button" @click="prevWeek" class="nav-btn" :title="$t('groupDetail.prev_week')">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <span class="week-label font-semibold">{{ formatWeekRange() }}</span>
+              <button type="button" @click="nextWeek" class="nav-btn" :title="$t('groupDetail.next_week')">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table grid-table">
               <thead>
                 <tr>
-                  <th>Student Name</th>
-                  <th>Grade</th>
-                  <th>Date</th>
-                  <th>Teacher</th>
-                  <th>Description</th>
+                  <th class="student-col-header">{{ $t('stats.student') }}</th>
+                  <th v-for="day in weekDays" :key="day.dateStr" :class="{ 'today-col-header': day.isToday }" class="date-col-header">
+                    <div class="day-header-info">
+                      <span class="day-name font-semibold">{{ $t('groupDetail.day_' + day.name.toLowerCase()) }}</span>
+                      <span class="day-date text-muted">{{ day.dateLabel }}</span>
+                      <span v-if="day.isToday" class="today-badge">{{ $t('groupDetail.today') }}</span>
+                    </div>
+                  </th>
+                  <th v-if="!weekDays.length">{{ $t('groupDetail.no_days') }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="grade in groupGrades" :key="grade.id" class="table-row">
-                  <td class="font-semibold">{{ grade.studentName }}</td>
-                  <td>
-                    <span :class="['grade-badge', 'grade-' + grade.grade]">
-                      {{ getGradeLabel(grade.grade) }}
-                    </span>
+                <tr v-for="student in activeEnrolledStudents" :key="student.studentId" class="table-row">
+                  <td class="student-cell">
+                    <div class="student-cell-content">
+                      <div class="student-avatar-circle">{{ getInitials(student.full_name) }}</div>
+                      <div class="student-info-text">
+                        <span class="student-name font-semibold">{{ student.full_name }}</span>
+                        <span class="student-id font-mono text-muted">#{{ student.id }}</span>
+                      </div>
+                    </div>
                   </td>
-                  <td>{{ formatDate(grade.date) }}</td>
-                  <td>{{ grade.teacherName }}</td>
-                  <td class="text-muted">{{ grade.description || '-' }}</td>
+                  
+                  <td v-for="day in weekDays" :key="day.dateStr" :class="{ 'today-cell': day.isToday }" class="grid-cell">
+                    <!-- Today (Editable) -->
+                    <div v-if="day.isToday" class="editable-cell-wrapper">
+                      <!-- Grade Select -->
+                      <div class="cell-input-group">
+                        <select 
+                          :value="getGradeValue(student.studentId, day.dateStr)" 
+                          @change="handleGradeChange(student.studentId, day.dateStr, $event.target.value)"
+                          class="grid-select"
+                        >
+                          <option value="">{{ $t('groupDetail.grade_placeholder') }}</option>
+                          <option value="5">{{ $t('groupDetail.grade_5') }}</option>
+                          <option value="4">{{ $t('groupDetail.grade_4') }}</option>
+                          <option value="3">{{ $t('groupDetail.grade_3') }}</option>
+                          <option value="2">{{ $t('groupDetail.grade_2') }}</option>
+                        </select>
+                      </div>
+                      
+                      <!-- Absence Toggle -->
+                      <div class="cell-input-group absence-toggle-group">
+                        <label class="absence-checkbox-label">
+                          <input 
+                            type="checkbox" 
+                            :checked="isAbsent(student.studentId, day.dateStr)" 
+                            @change="handleAbsenceToggle(student.studentId, day.dateStr, $event.target.checked)"
+                            class="checkbox-input grid-checkbox"
+                          />
+                          <span class="checkbox-custom-text">{{ $t('groupDetail.absent') }}</span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <!-- Other days (Read-only status badges) -->
+                    <div v-else class="readonly-cell-wrapper">
+                      <div class="badge-stack">
+                        <!-- Absence Badge -->
+                        <span v-if="isAbsent(student.studentId, day.dateStr)" class="absence-badge-static">
+                          {{ $t('groupDetail.absent') }} ❌
+                        </span>
+                        
+                        <!-- Grade Badge -->
+                        <span 
+                          v-if="getGradeValue(student.studentId, day.dateStr)" 
+                          :class="['grade-badge', `grade-${getGradeValue(student.studentId, day.dateStr)}`]"
+                        >
+                          {{ getGradeLabelReadOnly(getGradeValue(student.studentId, day.dateStr)) }}
+                        </span>
+                        
+                        <!-- Empty Placeholder -->
+                        <span v-if="!isAbsent(student.studentId, day.dateStr) && !getGradeValue(student.studentId, day.dateStr)" class="empty-cell-dash">
+                          -
+                        </span>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
-                <tr v-if="!groupGrades.length">
-                  <td colspan="5" class="empty-state">No grades recorded yet.</td>
+                <tr v-if="!activeEnrolledStudents.length">
+                  <td class="empty-state" colspan="8">{{ $t('groupDetail.no_students') }}</td>
                 </tr>
               </tbody>
             </table>
@@ -211,14 +278,14 @@
     <!-- Loading Screen fallback -->
     <div v-if="loading && !group" class="loading-state-fullscreen">
       <div class="spinner"></div>
-      <span>Loading group details...</span>
+      <span>{{ $t('groupDetail.loading') }}</span>
     </div>
 
     <!-- Enroll Students Modal -->
     <div v-if="showEnrollModal" class="modal-backdrop" @click.self="closeEnrollModal">
       <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-          <h2 class="modal-title">Enroll Students</h2>
+          <h2 class="modal-title">{{ $t('groupDetail.enroll_modal_title') }}</h2>
           <button @click="closeEnrollModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -227,14 +294,14 @@
           </button>
         </div>
         <div class="modal-body">
-          <p class="modal-instructions">Select one or more students to enroll into <strong>{{ group.name }}</strong>.</p>
+          <p class="modal-instructions" v-html="$t('groupDetail.enroll_instructions', { name: `<strong>${group.name}</strong>` })"></p>
           
           <!-- Search box & New Student Button -->
           <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
             <input
               type="text"
               v-model="enrollSearchQuery"
-              placeholder="Search students by name..."
+              :placeholder="$t('groupDetail.search_students')"
               class="form-input"
               style="padding: 0.55rem 0.75rem; font-size: 0.875rem; flex: 1;"
             />
@@ -244,7 +311,7 @@
               class="btn btn-primary"
               style="font-size: 0.85rem; padding: 0.55rem 0.75rem; flex-shrink: 0; white-space: nowrap;"
             >
-              New Student
+              {{ $t('groupDetail.new_student_btn') }}
             </button>
           </div>
 
@@ -265,77 +332,21 @@
               </label>
             </div>
             <div v-if="!availableStudents.length" class="empty-state" style="padding: 2rem 1rem;">
-              No available students to enroll.
+              {{ $t('groupDetail.no_students_available') }}
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" @click="closeEnrollModal" class="btn btn-secondary">Cancel</button>
+          <button type="button" @click="closeEnrollModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
           <button
             type="button"
             @click="enrollSelectedStudents"
             class="btn btn-primary"
             :disabled="submittingEnrollment || !selectedStudentIds.length"
           >
-            {{ submittingEnrollment ? 'Enrolling...' : `Enroll Selected (${selectedStudentIds.length})` }}
+            {{ submittingEnrollment ? $t('groupDetail.enrolling') : $t('groupDetail.enroll_selected_btn', { count: selectedStudentIds.length }) }}
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Grade Students Modal -->
-    <div v-if="showGradeModal" class="modal-backdrop" @click.self="closeGradeModal">
-      <div class="modal-content" style="max-width: 480px;">
-        <div class="modal-header">
-          <h2 class="modal-title">Grade Student</h2>
-          <button @click="closeGradeModal" class="modal-close">
-            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <form @submit.prevent="submitGrade">
-          <div class="modal-body">
-            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="gradeStudent" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Select Student</label>
-              <select id="gradeStudent" v-model="gradeForm.enrolled_student" required class="form-input" style="width: 100%;">
-                <option value="" disabled>Select Student...</option>
-                <option v-for="student in activeEnrolledStudents" :key="student.id" :value="student.studentId">
-                  {{ student.full_name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="gradeValue" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Grade</label>
-              <select id="gradeValue" v-model.number="gradeForm.grade" required class="form-input" style="width: 100%;">
-                <option :value="5">5 - Excellent 🤩</option>
-                <option :value="4">4 - Good 🙂</option>
-                <option :value="3">3 - Not bad 😐</option>
-                <option :value="2">2 - Bad 😞</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="gradeDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Description (Optional)</label>
-              <textarea
-                id="gradeDescription"
-                v-model="gradeForm.description"
-                placeholder="Remarks on performance, homework, etc..."
-                class="form-input"
-                rows="3"
-                style="width: 100%; box-sizing: border-box; resize: vertical;"
-              ></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" @click="closeGradeModal" class="btn btn-secondary">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="submittingGrade || !gradeForm.enrolled_student">
-              {{ submittingGrade ? 'Saving...' : 'Submit Grade' }}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
 
@@ -343,7 +354,7 @@
     <div v-if="showPaymentModal" class="modal-backdrop" @click.self="closePaymentModal">
       <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-          <h2 class="modal-title">Record Payment</h2>
+          <h2 class="modal-title">{{ $t('groupDetail.record_payment_title') }}</h2>
           <button @click="closePaymentModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -353,12 +364,11 @@
         </div>
         <form @submit.prevent="confirmPayment">
           <div class="modal-body">
-            <p class="modal-instructions" style="margin-bottom: 1.25rem;">
-              Confirm payment for student <strong>{{ paymentEnrollment ? paymentEnrollment.full_name : '' }}</strong> in group <strong>{{ group.name }}</strong>.
+            <p class="modal-instructions" style="margin-bottom: 1.25rem;" v-html="$t('groupDetail.confirm_payment_instructions', { student: '<strong>' + (paymentEnrollment ? paymentEnrollment.full_name : '') + '</strong>', group: '<strong>' + group.name + '</strong>' })">
             </p>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Amount (UZS)</label>
+              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_amount') }}</label>
               <input
                 type="text"
                 inputmode="numeric"
@@ -372,33 +382,33 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Payment Method</label>
+              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_method') }}</label>
               <select id="paymentMethod" v-model="paymentForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
+                <option value="cash">{{ $t('groupDetail.cash') }}</option>
+                <option value="card">{{ $t('groupDetail.card') }}</option>
               </select>
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Description (Optional)</label>
+              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_desc') }}</label>
               <textarea
                 id="paymentDescription"
                 v-model="paymentForm.description"
                 class="form-input"
                 rows="3"
-                placeholder="e.g. Monthly tuition fee payment"
+                :placeholder="$t('groupDetail.payment_desc_placeholder')"
                 style="width: 100%; box-sizing: border-box; resize: vertical;"
               ></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closePaymentModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closePaymentModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button
               type="submit"
               class="btn btn-primary"
               :disabled="submittingPayment || !paymentForm.amount"
             >
-              {{ submittingPayment ? 'Processing...' : 'Confirm Payment' }}
+              {{ submittingPayment ? $t('groupDetail.processing') : $t('groupDetail.confirm_payment_btn') }}
             </button>
           </div>
         </form>
@@ -409,7 +419,7 @@
     <div v-if="showCreateStudentModal" class="modal-backdrop" @click.self="closeCreateStudentModal" style="z-index: 10000;">
       <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-          <h2 class="modal-title">Create New Student</h2>
+          <h2 class="modal-title">{{ $t('groupDetail.create_student_title') }}</h2>
           <button @click="closeCreateStudentModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -420,63 +430,63 @@
         <form @submit.prevent="saveNewStudent">
           <div class="modal-body">
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="newStudentName" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Full Name</label>
+              <label for="newStudentName" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('groupDetail.student_fullname') }}</label>
               <input
                 type="text"
                 id="newStudentName"
                 v-model="studentForm.full_name"
                 required
-                placeholder="e.g. John Doe"
+                :placeholder="$t('groupDetail.student_fullname_placeholder')"
                 class="form-input"
                 style="width: 100%; box-sizing: border-box;"
               />
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="newStudentPhone1" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Primary Phone</label>
+              <label for="newStudentPhone1" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('groupDetail.student_phone1') }}</label>
               <input
                 type="text"
                 id="newStudentPhone1"
                 v-model="studentForm.phone1"
                 required
-                placeholder="e.g. +998 90 123 45 67"
+                :placeholder="$t('groupDetail.student_phone1_placeholder')"
                 class="form-input"
                 style="width: 100%; box-sizing: border-box;"
               />
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="newStudentPhone2" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Secondary Phone (Optional)</label>
+              <label for="newStudentPhone2" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('groupDetail.student_phone2') }}</label>
               <input
                 type="text"
                 id="newStudentPhone2"
                 v-model="studentForm.phone2"
-                placeholder="e.g. +998 90 987 65 43"
+                :placeholder="$t('groupDetail.student_phone2_placeholder')"
                 class="form-input"
                 style="width: 100%; box-sizing: border-box;"
               />
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="newStudentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">Description (Optional)</label>
+              <label for="newStudentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #475569;">{{ $t('common.description') }}</label>
               <textarea
                 id="newStudentDescription"
                 v-model="studentForm.description"
                 class="form-input"
                 rows="3"
-                placeholder="e.g. Prep for IELTS"
+                :placeholder="$t('groupDetail.student_desc_placeholder')"
                 style="width: 100%; box-sizing: border-box; resize: vertical;"
               ></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeCreateStudentModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeCreateStudentModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button
               type="submit"
               class="btn btn-primary"
               :disabled="submittingNewStudent || !studentForm.full_name || !studentForm.phone1"
             >
-              {{ submittingNewStudent ? 'Creating...' : 'Create Student' }}
+              {{ submittingNewStudent ? $t('groupDetail.creating') : $t('groupDetail.create_student_btn') }}
             </button>
           </div>
         </form>
@@ -504,15 +514,8 @@ export default {
       userRole: localStorage.getItem('user_role') || '',
       userId: parseInt(localStorage.getItem('user_id')) || null,
       grades: [],
-
-      // Grading state
-      showGradeModal: false,
-      submittingGrade: false,
-      gradeForm: {
-        enrolled_student: '',
-        grade: 5,
-        description: ''
-      },
+      absences: [],
+      currentWeekStart: null,
 
       // Enrollment modal state
       showEnrollModal: false,
@@ -542,23 +545,27 @@ export default {
     }
   },
   computed: {
-    groupGrades() {
-      if (!this.group || !this.grades.length) return []
-      return this.grades
-        .filter(g => g.group === this.group.id && g.is_active !== false)
-        .map(g => {
-          const student = this.students.find(s => s.id === g.enrolled_student)
-          const teacher = this.teachers.find(t => t.id === g.teacher)
-          return {
-            ...g,
-            studentName: student ? student.full_name : `Student #${g.enrolled_student}`,
-            teacherName: teacher ? `${teacher.first_name} ${teacher.last_name}` : `Teacher #${g.teacher}`
-          }
-        })
-        .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id)
+    todayStr() {
+      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
+      return localISOTime;
     },
-    activeEnrolledStudents() {
-      return this.enrolledStudents.filter(s => s.status !== 'dropped')
+    weekDays() {
+      if (!this.currentWeekStart) return []
+      const daysList = []
+      const weekDaysNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(this.currentWeekStart)
+        d.setDate(this.currentWeekStart.getDate() + i)
+        const dateStr = d.toISOString().split('T')[0]
+        daysList.push({
+          name: weekDaysNames[i],
+          dateLabel: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          dateStr,
+          isToday: dateStr === this.todayStr
+        })
+      }
+      return daysList
     },
     enrolledStudents() {
       if (!this.group || !this.students.length || !this.enrollments.length) return []
@@ -577,6 +584,9 @@ export default {
         }
       }).filter(item => item.full_name)
     },
+    activeEnrolledStudents() {
+      return this.enrolledStudents.filter(s => s.status !== 'dropped')
+    },
     availableStudents() {
       if (!this.students.length) return []
       const enrolledIds = this.enrolledStudents.map(e => e.studentId)
@@ -592,6 +602,9 @@ export default {
       return list
     }
   },
+  created() {
+    this.currentWeekStart = this.getMonday(new Date())
+  },
   mounted() {
     this.fetchData()
   },
@@ -601,7 +614,7 @@ export default {
       this.error = null
       const id = this.$route.params.id
       try {
-        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes] = await Promise.all([
+        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes, absencesRes] = await Promise.all([
           axios.get(`http://localhost:8000/api/groups/${id}/`),
           axios.get('http://localhost:8000/api/courses/'),
           axios.get('http://localhost:8000/api/users/'),
@@ -609,9 +622,10 @@ export default {
           axios.get('http://localhost:8000/api/branches/'),
           axios.get('http://localhost:8000/api/students/'),
           axios.get('http://localhost:8000/api/enrollments/'),
-          axios.get('http://localhost:8000/api/grades/')
+          axios.get('http://localhost:8000/api/grades/'),
+          axios.get('http://localhost:8000/api/absences/')
         ])
-        
+
         this.group = groupRes.data
         this.courses = coursesRes.data
         this.teachers = usersRes.data.filter(u => u.role === 'teacher')
@@ -620,51 +634,113 @@ export default {
         this.students = studentsRes.data
         this.enrollments = enrollmentsRes.data
         this.grades = gradesRes.data
+        this.absences = absencesRes.data
       } catch (err) {
         console.error('Error fetching group details:', err)
-        this.error = 'Failed to load group detail from the server.'
+        this.error = this.$t('stats.api_error')
       } finally {
         this.loading = false
       }
     },
-    openGradeModal() {
-      this.gradeForm = {
-        enrolled_student: '',
-        grade: 5,
-        description: ''
-      }
-      this.showGradeModal = true
+    getMonday(d) {
+      d = new Date(d)
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      return new Date(d.setDate(diff))
     },
-    closeGradeModal() {
-      this.showGradeModal = false
+    prevWeek() {
+      const prev = new Date(this.currentWeekStart)
+      prev.setDate(prev.getDate() - 7)
+      this.currentWeekStart = prev
     },
-    async submitGrade() {
-      this.submittingGrade = true
+    nextWeek() {
+      const next = new Date(this.currentWeekStart)
+      next.setDate(next.getDate() + 7)
+      this.currentWeekStart = next
+    },
+    formatWeekRange() {
+      if (!this.currentWeekStart) return ""
+      const start = this.currentWeekStart
+      const end = new Date(this.currentWeekStart)
+      end.setDate(end.getDate() + 5) // Saturday
+      const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+      return `${start.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })} - ${end.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}`
+    },
+    getGradeValue(studentId, dateStr) {
+      if (!this.grades || !this.grades.length) return ""
+      const g = this.grades.find(
+        x => x.enrolled_student === studentId && x.group === this.group.id && x.date === dateStr && x.is_active !== false
+      )
+      return g ? g.grade : ""
+    },
+    isAbsent(studentId, dateStr) {
+      if (!this.absences || !this.absences.length) return false
+      return this.absences.some(
+        x => x.student === studentId && x.group === this.group.id && x.date === dateStr && x.is_active !== false
+      )
+    },
+    async handleGradeChange(studentId, dateStr, value) {
+      const existingGrade = this.grades.find(
+        x => x.enrolled_student === studentId && x.group === this.group.id && x.date === dateStr && x.is_active !== false
+      )
+      
       try {
-        const payload = {
-          enrolled_student: this.gradeForm.enrolled_student,
-          group: this.group.id,
-          teacher: this.userId,
-          grade: this.gradeForm.grade,
-          description: this.gradeForm.description,
-          date: new Date().toISOString().split('T')[0]
+        if (value === "") {
+          if (existingGrade) {
+            await axios.delete(`http://localhost:8000/api/grades/${existingGrade.id}/`)
+          }
+        } else {
+          const valNum = parseInt(value)
+          if (existingGrade) {
+            await axios.patch(`http://localhost:8000/api/grades/${existingGrade.id}/`, { grade: valNum })
+          } else {
+            await axios.post('http://localhost:8000/api/grades/', {
+              enrolled_student: studentId,
+              group: this.group.id,
+              teacher: this.userId,
+              grade: valNum,
+              date: dateStr
+            })
+          }
         }
-        await axios.post('http://localhost:8000/api/grades/', payload)
-        this.closeGradeModal()
-        this.fetchData()
+        await this.fetchData()
       } catch (err) {
-        console.error('Error submitting grade:', err)
-        alert('An error occurred while saving the student grade record.')
-      } finally {
-        this.submittingGrade = false
+        console.error('Error changing grade:', err)
+        alert(this.$t('groupDetail.error_grade'))
       }
     },
-    getGradeLabel(grade) {
+    async handleAbsenceToggle(studentId, dateStr, isChecked) {
+      const existingAbsence = this.absences.find(
+        x => x.student === studentId && x.group === this.group.id && x.date === dateStr && x.is_active !== false
+      )
+
+      try {
+        if (isChecked) {
+          if (!existingAbsence) {
+            await axios.post('http://localhost:8000/api/absences/', {
+              student: studentId,
+              group: this.group.id,
+              teacher: this.userId,
+              date: dateStr
+            })
+          }
+        } else {
+          if (existingAbsence) {
+            await axios.delete(`http://localhost:8000/api/absences/${existingAbsence.id}/`)
+          }
+        }
+        await this.fetchData()
+      } catch (err) {
+        console.error('Error changing absence:', err)
+        alert(this.$t('groupDetail.error_absence'))
+      }
+    },
+    getGradeLabelReadOnly(grade) {
       switch (grade) {
-        case 5: return 'Excellent 🤩'
-        case 4: return 'Good 🙂'
-        case 3: return 'Not bad 😐'
-        case 2: return 'Bad 😞'
+        case 5: return this.$t('groupDetail.grade_5')
+        case 4: return this.$t('groupDetail.grade_4')
+        case 3: return this.$t('groupDetail.grade_3')
+        case 2: return this.$t('groupDetail.grade_2')
         default: return `${grade}`
       }
     },
@@ -696,7 +772,8 @@ export default {
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+        return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
       } catch (e) {
         return dateStr
       }
@@ -732,13 +809,13 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error enrolling students:', err)
-        alert('An error occurred while enrolling the students.')
+        alert(this.$t('groupDetail.error_enroll'))
       } finally {
         this.submittingEnrollment = false
       }
     },
     async unenrollStudent(enrolled) {
-      if (!confirm(`Are you sure you want to drop "${enrolled.full_name}" from this group?`)) {
+      if (!confirm(this.$t('groupDetail.drop_confirm', { name: enrolled.full_name }))) {
         return
       }
       try {
@@ -801,7 +878,7 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error confirming payment:', err)
-        alert('An error occurred while confirming the payment.')
+        alert(this.$t('groupDetail.error_payment'))
       } finally {
         this.submittingPayment = false
       }
@@ -838,10 +915,14 @@ export default {
         this.closeCreateStudentModal()
       } catch (err) {
         console.error('Error creating new student:', err)
-        alert('An error occurred while creating the student.')
+        alert(this.$t('groupDetail.error_create_student'))
       } finally {
         this.submittingNewStudent = false
       }
+    },
+    getInitials(name) {
+      if (!name) return ''
+      return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     }
   }
 }
@@ -1099,13 +1180,17 @@ export default {
   transform: translateY(0);
 }
 
+.today-row {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
 .grade-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.65rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid transparent;
 }
@@ -1128,5 +1213,276 @@ export default {
   background-color: #fee2e2;
   color: #991b1b;
   border-color: #fca5a5;
+}
+
+/* Week Navigation */
+.flex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #f1f5f9;
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.nav-btn {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #475569;
+}
+
+.nav-btn:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.week-label {
+  font-size: 0.875rem;
+  color: #334155;
+  min-width: 180px;
+  text-align: center;
+}
+
+/* Grid Table specific styling */
+.grid-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.grid-table th, 
+.grid-table td {
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-left: none;
+}
+
+.grid-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  text-align: center;
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.grid-table th:first-child,
+.grid-table td:first-child {
+  border-left: 1px solid #e2e8f0;
+}
+
+.grid-table tr:first-child th {
+  border-top: 1px solid #e2e8f0;
+}
+
+.date-col-header {
+  min-width: 130px;
+}
+
+.today-col-header {
+  background-color: #f5f3ff !important;
+  border-bottom: 2px solid #6366f1 !important;
+}
+
+.student-col-header {
+  min-width: 220px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background-color: #f8fafc !important;
+  box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.05);
+}
+
+.student-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.student-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #6366f1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.775rem;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15);
+  flex-shrink: 0;
+}
+
+.student-name {
+  color: #0f172a;
+  font-size: 0.9rem;
+  display: block;
+}
+
+.student-id {
+  font-size: 0.75rem;
+  display: block;
+}
+
+.student-cell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: white;
+  min-width: 220px;
+  box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.05);
+}
+
+.table-row:hover .student-cell {
+  background-color: #f8fafc;
+}
+
+.student-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.student-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.day-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.day-name {
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.day-date {
+  font-size: 0.775rem;
+}
+
+.today-badge {
+  background-color: #6366f1;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.grid-cell {
+  padding: 0.75rem !important;
+  text-align: center;
+  vertical-align: middle;
+  transition: background-color 0.2s ease;
+}
+
+.today-cell {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+.editable-cell-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-input-group {
+  width: 100%;
+}
+
+.grid-select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  font-size: 0.8rem;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.grid-select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.absence-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.grid-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #ef4444; /* red for absence */
+  cursor: pointer;
+}
+
+.readonly-cell-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.absence-badge-static {
+  background-color: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fca5a5;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.empty-cell-dash {
+  color: #cbd5e1;
+  font-weight: bold;
 }
 </style>

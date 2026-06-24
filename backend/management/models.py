@@ -185,3 +185,12 @@ class Grade(BaseModel):
 
     def __str__(self):
         return f"{self.enrolled_student.full_name} - {self.group.name} - {self.grade} ({self.date})"
+
+class Absence(BaseModel):
+    student = models.ForeignKey(Student, on_delete=models.PROTECT)
+    group = models.ForeignKey(Group, on_delete=models.PROTECT)
+    teacher = models.ForeignKey(User, on_delete=models.PROTECT, limit_choices_to={'role': 'teacher'})
+    date = models.DateField(default=timezone.localdate)
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.group.name} - {self.date}"

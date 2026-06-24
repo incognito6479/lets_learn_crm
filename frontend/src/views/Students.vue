@@ -2,17 +2,17 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Students</h1>
-        <p class="view-subtitle">Manage registered students and their details</p>
+        <h1 class="view-title">{{ $t('students.title') }}</h1>
+        <p class="view-subtitle">{{ $t('students.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
-        <div class="badge-count" v-if="students.length">{{ students.length }} total</div>
+        <div class="badge-count" v-if="students.length">{{ students.length }} {{ $t('common.total') }}</div>
         <button @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Student
+          {{ $t('students.new') }}
         </button>
       </div>
     </div>
@@ -27,7 +27,7 @@
       <input
         type="text"
         v-model="searchQuery"
-        placeholder="Search students by name or phone..."
+        :placeholder="$t('students.search_placeholder')"
         class="form-input"
       />
     </div>
@@ -39,11 +39,11 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Full Name</th>
-              <th>Primary Phone</th>
-              <th>Secondary Phone</th>
-              <th>Description</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('students.col_fullname') }}</th>
+              <th>{{ $t('students.col_phone1') }}</th>
+              <th>{{ $t('students.col_phone2') }}</th>
+              <th>{{ $t('common.description') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -54,13 +54,13 @@
               <td>{{ student.phone2 || '-' }}</td>
               <td>{{ student.description || '-' }}</td>
               <td class="actions-cell">
-                <button @click="openEditModal(student)" class="btn-icon" title="Edit Student">
+                <button @click="openEditModal(student)" class="btn-icon" :title="$t('students.modal_edit')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button @click="deleteStudent(student)" class="btn-icon btn-icon-danger" title="Delete Student">
+                <button @click="deleteStudent(student)" class="btn-icon btn-icon-danger" :title="$t('common.delete')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -71,12 +71,12 @@
               </td>
             </tr>
             <tr v-if="!students.length && !loading">
-              <td colspan="6" class="empty-state">No students found.</td>
+              <td colspan="6" class="empty-state">{{ $t('students.no_students') }}</td>
             </tr>
             <tr v-if="loading">
               <td colspan="6" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading students...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -88,7 +88,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">{{ isEdit ? 'Edit Student' : 'Add Student' }}</h2>
+          <h2 class="modal-title">{{ isEdit ? $t('students.modal_edit') : $t('students.modal_new') }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -99,52 +99,52 @@
         <form @submit.prevent="saveStudent">
           <div class="modal-body">
             <div class="form-group">
-              <label for="fullName" class="form-label">Full Name</label>
+              <label for="fullName" class="form-label">{{ $t('students.col_fullname') }}</label>
               <input
                 type="text"
                 id="fullName"
                 v-model="form.full_name"
                 required
-                placeholder="e.g. John Doe"
+                :placeholder="$t('groupDetail.student_fullname_placeholder')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="phone1" class="form-label">Primary Phone</label>
+              <label for="phone1" class="form-label">{{ $t('students.col_phone1') }}</label>
               <input
                 type="text"
                 id="phone1"
                 v-model="form.phone1"
                 required
-                placeholder="e.g. +1 555-0199"
+                :placeholder="$t('groupDetail.student_phone1_placeholder')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="phone2" class="form-label">Secondary Phone (Optional)</label>
+              <label for="phone2" class="form-label">{{ $t('students.col_phone2') }}</label>
               <input
                 type="text"
                 id="phone2"
                 v-model="form.phone2"
-                placeholder="e.g. +1 555-0198"
+                :placeholder="$t('groupDetail.student_phone2_placeholder')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="description" class="form-label">Description (Optional)</label>
+              <label for="description" class="form-label">{{ $t('common.description') }}</label>
               <textarea
                 id="description"
                 v-model="form.description"
-                placeholder="e.g. Preparing for IELTS, schedules on weekends"
+                :placeholder="$t('groupDetail.student_desc_placeholder')"
                 class="form-input"
                 rows="3"
               ></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
-              {{ submitting ? 'Saving...' : 'Save Changes' }}
+              {{ submitting ? $t('common.loading') : $t('common.save') }}
             </button>
           </div>
         </form>
@@ -204,7 +204,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching students:', err)
-        this.error = 'Failed to load students roster.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -240,12 +240,12 @@ export default {
         this.fetchStudents()
       } catch (err) {
         console.error('Error saving student:', err)
-        alert('An error occurred while saving the student record.')
+        alert(this.$t('common.error_save'))
         this.submitting = false
       }
     },
     async deleteStudent(student) {
-      if (!confirm(`Are you sure you want to delete student "${student.full_name}"?`)) {
+      if (!confirm(this.$t('students.delete_confirm', { name: student.full_name }))) {
         return
       }
 
@@ -255,7 +255,7 @@ export default {
         this.fetchStudents()
       } catch (err) {
         console.error('Error deleting student:', err)
-        alert('An error occurred while deleting the student record.')
+        alert(this.$t('common.error_delete'))
       }
     }
   }

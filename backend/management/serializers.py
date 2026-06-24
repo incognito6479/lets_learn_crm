@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
 
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:
@@ -83,6 +83,28 @@ class GradeSerializer(serializers.ModelSerializer):
             if not enrollment_exists:
                 raise serializers.ValidationError({
                     "enrolled_student": f"Student is not actively enrolled in the specified group."
+                })
+
+        return attrs
+
+class AbsenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Absence
+        exclude = ('created_at',)
+
+    def validate(self, attrs):
+        student = attrs.get('student')
+        group = attrs.get('group')
+
+        if student and group:
+            enrollment_exists = Enrollment.objects.filter(
+                student=student,
+                group=group,
+                is_active=True
+            ).exists()
+            if not enrollment_exists:
+                raise serializers.ValidationError({
+                    "student": "Student is not actively enrolled in the specified group."
                 })
 
         return attrs

@@ -2,17 +2,17 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Teachers</h1>
-        <p class="view-subtitle">Manage faculty members and instructors</p>
+        <h1 class="view-title">{{ $t('teachers.title') }}</h1>
+        <p class="view-subtitle">{{ $t('teachers.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
-        <div class="badge-count" v-if="teachers.length">{{ teachers.length }} instructors</div>
+        <div class="badge-count" v-if="teachers.length">{{ teachers.length }} {{ $t('stats.active_teachers') }}</div>
         <button @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Teacher
+          {{ $t('teachers.new') }}
         </button>
       </div>
     </div>
@@ -27,7 +27,7 @@
       <input
         type="text"
         v-model="searchQuery"
-        placeholder="Search teachers by name..."
+        :placeholder="$t('teachers.search_placeholder')"
         class="form-input"
       />
     </div>
@@ -39,13 +39,13 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Phone Number</th>
-              <th>Role</th>
-              <th>Branch</th>
-              <th>Status</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('common.name') }}</th>
+              <th>{{ $t('teachers.col_username') }}</th>
+              <th>{{ $t('common.phone') }}</th>
+              <th>{{ $t('teachers.col_status') }}</th>
+              <th>{{ $t('teachers.col_branch') }}</th>
+              <th>{{ $t('teachers.col_status') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -59,22 +59,22 @@
               <td>{{ teacher.username }}</td>
               <td>{{ teacher.phone_number || '-' }}</td>
               <td>
-                <span class="status-badge teacher">{{ teacher.role }}</span>
+                <span class="status-badge teacher">{{ teacher.role === 'teacher' ? $t('groupDetail.teacher') : teacher.role }}</span>
               </td>
               <td>{{ getBranchName(teacher.branch) }}</td>
               <td>
                 <span class="status-badge" :class="teacher.is_active ? 'active' : 'dropped'">
-                  {{ teacher.is_active ? 'Active' : 'Inactive' }}
+                  {{ teacher.is_active ? $t('teachers.active') : $t('teachers.inactive') }}
                 </span>
               </td>
               <td class="actions-cell">
-                <button @click="openEditModal(teacher)" class="btn-icon" title="Edit Teacher">
+                <button @click="openEditModal(teacher)" class="btn-icon" :title="$t('teachers.modal_edit')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button @click="deleteTeacher(teacher)" class="btn-icon btn-icon-danger" title="Delete Teacher">
+                <button @click="deleteTeacher(teacher)" class="btn-icon btn-icon-danger" :title="$t('common.delete')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -85,12 +85,12 @@
               </td>
             </tr>
             <tr v-if="!teachers.length && !loading">
-              <td colspan="7" class="empty-state">No teachers found.</td>
+              <td colspan="8" class="empty-state">{{ $t('teachers.no_teachers') }}</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="7" class="loading-state">
+              <td colspan="8" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading teachers...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -102,7 +102,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">{{ isEdit ? 'Edit Teacher' : 'Add Teacher' }}</h2>
+          <h2 class="modal-title">{{ isEdit ? $t('teachers.modal_edit') : $t('teachers.modal_new') }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -114,65 +114,62 @@
           <div class="modal-body">
             <div style="display: flex; gap: 1rem;">
               <div class="form-group" style="flex: 1;">
-                <label for="firstName" class="form-label">First Name</label>
+                <label for="firstName" class="form-label">{{ $t('teachers.form_firstname') }}</label>
                 <input
                   type="text"
                   id="firstName"
                   v-model="form.first_name"
                   required
-                  placeholder="e.g. Marie"
                   class="form-input"
                 />
               </div>
               <div class="form-group" style="flex: 1;">
-                <label for="lastName" class="form-label">Last Name</label>
+                <label for="lastName" class="form-label">{{ $t('teachers.form_lastname') }}</label>
                 <input
                   type="text"
                   id="lastName"
                   v-model="form.last_name"
                   required
-                  placeholder="e.g. Curie"
                   class="form-input"
                 />
               </div>
             </div>
             <div class="form-group">
-              <label for="username" class="form-label">Username</label>
+              <label for="username" class="form-label">{{ $t('teachers.form_username') }}</label>
               <input
                 type="text"
                 id="username"
                 v-model="form.username"
                 required
-                placeholder="e.g. mcurie"
                 class="form-input"
                 :disabled="isEdit"
               />
             </div>
             <div class="form-group">
-              <label for="password" class="form-label">Password {{ isEdit ? '(leave blank to keep current)' : '' }}</label>
+              <label for="password" class="form-label">{{ $t('login.password') }} {{ isEdit ? $t('teachers.form_password_hint') : '' }}</label>
               <input
                 type="password"
                 id="password"
                 v-model="form.password"
                 :required="!isEdit"
-                placeholder="Enter account password..."
+                :placeholder="$t('login.password') + '...'"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="phoneNumber" class="form-label">Phone Number</label>
+              <label for="phoneNumber" class="form-label">{{ $t('common.phone') }}</label>
               <input
                 type="text"
                 id="phoneNumber"
                 v-model="form.phone_number"
-                placeholder="e.g. +1 555-0143"
+                :placeholder="$t('groupDetail.student_phone1_placeholder')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="teacherBranch" class="form-label">Campus Branch</label>
+              <label for="teacherBranch" class="form-label">{{ $t('teachers.form_branch') }}</label>
               <select id="teacherBranch" v-model="form.branch" class="form-input">
-                <option value="">No branch assigned</option>
+                <option value="">{{ $t('teachers.form_branch') }}</option>
                 <option v-for="branch in branches" :key="branch.id" :value="branch.id">
                   {{ branch.name }}
                 </option>
@@ -183,14 +180,14 @@
               <label class="checkbox-container">
                 <input type="checkbox" v-model="form.is_active" />
                 <span class="checkmark"></span>
-                <span class="checkbox-label" style="color: #475569; font-weight: 600;">Active Account</span>
+                <span class="checkbox-label" style="color: #475569; font-weight: 600;">{{ $t('teachers.form_status') }}</span>
               </label>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
-              {{ submitting ? 'Saving...' : 'Save Changes' }}
+              {{ submitting ? $t('common.loading') : $t('common.save') }}
             </button>
           </div>
         </form>
@@ -258,7 +255,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching data:', err)
-        this.error = 'Failed to load teachers roster from backend.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -306,12 +303,12 @@ export default {
         this.fetchData()
       } catch (err) {
         console.error('Error saving teacher:', err)
-        alert('An error occurred while saving the teacher record.')
+        alert(this.$t('common.error_save'))
         this.submitting = false
       }
     },
     async deleteTeacher(teacher) {
-      if (!confirm(`Are you sure you want to delete teacher "${teacher.first_name} ${teacher.last_name}"?`)) {
+      if (!confirm(this.$t('teachers.delete_confirm', { name: teacher.first_name + ' ' + teacher.last_name }))) {
         return
       }
 
@@ -320,7 +317,7 @@ export default {
         this.fetchData()
       } catch (err) {
         console.error('Error deleting teacher:', err)
-        alert('An error occurred while deleting the teacher record. If they are mapped to active classes, deletion is protected.')
+        alert(this.$t('teachers.error_delete'))
       }
     },
     getBranchName(branchId) {

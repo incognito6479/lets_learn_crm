@@ -7,7 +7,7 @@
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back
+        {{ $t('common.back') }}
       </button>
     </div>
 
@@ -18,16 +18,16 @@
 
     <div v-if="loading" class="loading-state-full" style="padding: 10rem 0; text-align: center;">
       <div class="spinner"></div>
-      <span style="margin-top: 1rem; display: block; color: #64748b;">Loading teacher details...</span>
+      <span style="margin-top: 1rem; display: block; color: #64748b;">{{ $t('groupDetail.loading') }}</span>
     </div>
 
     <div v-if="!loading && teacher" class="detail-grid-layout" style="display: flex; flex-direction: column; gap: 1.5rem;">
       <!-- Teacher Profile Card -->
       <div class="detail-card glass-panel" style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden;">
         <div class="panel-header" style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-          <h2 class="panel-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">Teacher Profile</h2>
+          <h2 class="panel-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">{{ $t('teacherDetail.title') }}</h2>
           <span :class="['status-badge', teacher.is_active ? 'active' : 'dropped']" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-            {{ teacher.is_active ? 'Active' : 'Inactive' }}
+            {{ teacher.is_active ? $t('teachers.active') : $t('teachers.inactive') }}
           </span>
         </div>
         <div class="panel-body" style="padding: 1.5rem;">
@@ -43,16 +43,16 @@
           
           <div class="info-fields-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
             <div class="info-field">
-              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">Phone Number</span>
+              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">{{ $t('common.phone') }}</span>
               <span class="field-value" style="font-size: 1rem; color: #1e293b; font-weight: 500;">{{ teacher.phone_number || '-' }}</span>
             </div>
             <div class="info-field">
-              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">Assigned Campus Branch</span>
+              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">{{ $t('teachers.form_branch') }}</span>
               <span class="field-value" style="font-size: 1rem; color: #1e293b; font-weight: 500;">{{ getBranchName(teacher.branch) }}</span>
             </div>
             <div class="info-field">
-              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">Role</span>
-              <span class="field-value" style="font-size: 1rem; color: #1e293b; font-weight: 500; text-transform: capitalize;">{{ teacher.role }}</span>
+              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">{{ $t('teachers.col_status') }}</span>
+              <span class="field-value" style="font-size: 1rem; color: #1e293b; font-weight: 500; text-transform: capitalize;">{{ teacher.role === 'teacher' ? $t('groupDetail.teacher') : teacher.role }}</span>
             </div>
           </div>
         </div>
@@ -61,9 +61,9 @@
       <!-- Groups Taught Table -->
       <div class="detail-card glass-panel" style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden;">
         <div class="panel-header" style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-          <h2 class="panel-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">Groups Taught</h2>
+          <h2 class="panel-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">{{ $t('teacherDetail.groups_taught') }}</h2>
           <div class="badge-count" style="padding: 0.25rem 0.75rem; border-radius: 9999px; background-color: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 600;">
-            {{ teacherGroups.length }} groups
+            {{ teacherGroups.length }} {{ $t('nav.groups').toLowerCase() }}
           </div>
         </div>
         <div class="panel-body" style="padding: 1.5rem;">
@@ -71,14 +71,14 @@
             <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
               <thead>
                 <tr style="border-bottom: 2px solid #f1f5f9;">
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Group ID</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Group Name</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Course</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Branch / Room</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Schedule</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Price</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">Students</th>
-                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem; text-align: right;">Status</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">ID</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('groups.form_name') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('groupDetail.course') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('groupDetail.branch') }} / {{ $t('groupDetail.room') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('timetable.title') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('groupDetail.price') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem;">{{ $t('groups.col_students') }}</th>
+                  <th style="padding: 1rem; color: #64748b; font-weight: 600; font-size: 0.85rem; text-align: right;">{{ $t('common.status') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,16 +97,16 @@
                   </td>
                   <td style="padding: 1rem; font-weight: 500; font-family: monospace;">{{ formatPrice(group.price) }} UZS</td>
                   <td style="padding: 1rem;">
-                    <span style="font-weight: 600; color: #1e293b;">{{ group.students ? group.students.length : 0 }}</span> students
+                    <span style="font-weight: 600; color: #1e293b;">{{ group.students ? group.students.length : 0 }}</span> {{ $t('groups.col_students').toLowerCase() }}
                   </td>
                   <td style="padding: 1rem; text-align: right;">
                     <span :class="['status-badge', group.status === 'ongoing' ? 'active' : 'dropped']" style="padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600;">
-                      {{ group.status }}
+                      {{ $t('groups.status_' + (group.status || 'ongoing')) }}
                     </span>
                   </td>
                 </tr>
                 <tr v-if="!teacherGroups.length">
-                  <td colspan="8" style="padding: 3rem; text-align: center; color: #64748b;">No groups assigned to this teacher.</td>
+                  <td colspan="8" style="padding: 3rem; text-align: center; color: #64748b;">{{ $t('teacherDetail.no_groups') }}</td>
                 </tr>
               </tbody>
             </table>
@@ -164,7 +164,7 @@ export default {
         this.rooms = roomsRes.data
       } catch (err) {
         console.error('Error loading teacher details:', err)
-        this.error = 'Failed to load teacher details from backend API.'
+        this.error = this.$t('stats.api_error')
       } finally {
         this.loading = false
       }

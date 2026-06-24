@@ -17,8 +17,8 @@
             <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <h1 class="title">Welcome Back</h1>
-        <p class="subtitle">Access the Learning Center Management Portal</p>
+        <h1 class="title">{{ $t('login.title') }}</h1>
+        <p class="subtitle">{{ $t('login.sub') }}</p>
 
       </div>
 
@@ -38,7 +38,7 @@
 
         <!-- Username Field -->
         <div class="form-group">
-          <label for="username" class="form-label">Username</label>
+          <label for="username" class="form-label">{{ $t('login.username') }}</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -51,7 +51,7 @@
               v-model="username"
               autocomplete="username"
               required
-              placeholder="Enter your username"
+              :placeholder="$t('login.username')"
               class="form-input"
               ref="usernameInput"
             />
@@ -61,8 +61,8 @@
         <!-- Password Field -->
         <div class="form-group">
           <div class="label-row">
-            <label for="current-password" class="form-label">Password</label>
-            <a href="#" @click.prevent="forgotPassword" class="forgot-link">Forgot password?</a>
+            <label for="current-password" class="form-label">{{ $t('login.password') }}</label>
+            <a href="#" @click.prevent="forgotPassword" class="forgot-link">{{ $t('login.forgot') }}</a>
           </div>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -76,7 +76,7 @@
               v-model="password"
               autocomplete="current-password"
               required
-              placeholder="Enter your password"
+              :placeholder="$t('login.password')"
               class="form-input password-input"
             />
             <button
@@ -102,14 +102,14 @@
           <label class="checkbox-container">
             <input type="checkbox" v-model="rememberMe" />
             <span class="checkmark"></span>
-            <span class="checkbox-label">Keep me signed in</span>
+            <span class="checkbox-label">{{ $t('login.remember') }}</span>
           </label>
         </div>
 
         <!-- Submit Button -->
         <button type="submit" class="submit-btn" :disabled="loading">
           <span v-if="loading" class="spinner"></span>
-          <span v-else>Sign In</span>
+          <span v-else>{{ $t('login.signIn') }}</span>
         </button>
       </form>
     </div>
@@ -142,7 +142,7 @@ export default {
 
       // Create Basic Auth Token: base64(username:password)
       const credentials = `${this.username}:${this.password}`
-      const token = btoa(unescape(encodeURIComponent(credentials)))
+      const token = btoa(credentials)
 
       try {
         // Test auth credentials by requesting list of branches or users
@@ -178,16 +178,16 @@ export default {
         delete axios.defaults.headers.common['Authorization']
         this.loading = false
         if (err.response && err.response.status === 401) {
-          this.error = 'Invalid username or password.'
+          this.error = this.$t('login.error')
         } else if (!err.response) {
-          this.error = 'Live server is unreachable. Please verify server status.'
+          this.error = this.$t('login.server_error')
         } else {
-          this.error = 'An error occurred during sign in. Please try again.'
+          this.error = this.$t('login.unknown_error')
         }
       }
     },
     forgotPassword() {
-      alert('Password reset instructions have been simulated. In production, this would send an email.')
+      alert(this.$t('login.forgot_alert'))
     }
   }
 }

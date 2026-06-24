@@ -1,5 +1,8 @@
 <template>
-  <div id="app" :class="{ 'dashboard-layout': isLoggedIn }">
+  <div id="app" :class="{ 'dashboard-layout': isLoggedIn, 'sidebar-collapsed': isSidebarCollapsed, 'is-mobile': isMobile, 'drawer-open': !isSidebarCollapsed && isMobile }">
+    <!-- Sidebar mobile backdrop overlay -->
+    <div v-if="isLoggedIn && !isSidebarCollapsed && isMobile" class="sidebar-backdrop" @click="closeSidebar"></div>
+
     <!-- Left Sidebar (Logged In Only) -->
     <aside v-if="isLoggedIn" class="sidebar">
       <div class="sidebar-brand">
@@ -16,43 +19,43 @@
       <nav class="sidebar-nav">
         <router-link v-if="userRole !== 'teacher'" to="/" class="nav-item">
           <span class="nav-icon">📊</span>
-          <span class="nav-text">Statistics</span>
+          <span class="nav-text">{{ $t('nav.statistics') }}</span>
         </router-link>
         <router-link to="/timetable" class="nav-item">
           <span class="nav-icon">📅</span>
-          <span class="nav-text">Timetable</span>
+          <span class="nav-text">{{ $t('nav.timetable') }}</span>
         </router-link>
         <router-link to="/groups" class="nav-item">
           <span class="nav-icon">👥</span>
-          <span class="nav-text">Groups</span>
+          <span class="nav-text">{{ $t('nav.groups') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/payments" class="nav-item">
           <span class="nav-icon">💰</span>
-          <span class="nav-text">Payments</span>
+          <span class="nav-text">{{ $t('nav.payments') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/debts" class="nav-item">
           <span class="nav-icon">⚠️</span>
-          <span class="nav-text">Debts</span>
+          <span class="nav-text">{{ $t('nav.debts') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/students" class="nav-item">
           <span class="nav-icon">🎓</span>
-          <span class="nav-text">Students</span>
+          <span class="nav-text">{{ $t('nav.students') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/teachers" class="nav-item">
           <span class="nav-icon">👨‍🏫</span>
-          <span class="nav-text">Teachers</span>
+          <span class="nav-text">{{ $t('nav.teachers') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/rooms" class="nav-item">
           <span class="nav-icon">🏫</span>
-          <span class="nav-text">Rooms</span>
+          <span class="nav-text">{{ $t('nav.rooms') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/branches" class="nav-item">
           <span class="nav-icon">🏢</span>
-          <span class="nav-text">Branches</span>
+          <span class="nav-text">{{ $t('nav.branches') }}</span>
         </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/courses" class="nav-item">
           <span class="nav-icon">📚</span>
-          <span class="nav-text">Courses</span>
+          <span class="nav-text">{{ $t('nav.courses') }}</span>
         </router-link>
       </nav>
     </aside>
@@ -61,8 +64,33 @@
     <div class="main-container">
       <!-- Top Header (Logged In Only) -->
       <header v-if="isLoggedIn" class="top-header">
+        <div class="header-left">
+          <button @click="toggleSidebar" class="sidebar-toggle-btn" :title="$t('common.menu') || 'Menu'">
+            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
         <div class="header-right">
-          <div class="user-profile">
+          <!-- Language Switcher -->
+          <div class="lang-switcher">
+            <button 
+              type="button"
+              @click="changeLang('uz')" 
+              :class="{ active: currentLang === 'uz' }" 
+              class="lang-btn"
+            >UZ</button>
+            <button 
+              type="button"
+              @click="changeLang('ru')" 
+              :class="{ active: currentLang === 'ru' }" 
+              class="lang-btn"
+            >RU</button>
+          </div>
+
+          <div class="user-profile" v-if="!isMobile">
             <span class="avatar">{{ userInitials }}</span>
             <span class="username">{{ username }}</span>
           </div>
@@ -72,7 +100,7 @@
               <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Sign Out</span>
+            <span v-if="!isMobile">{{ $t('nav.signOut') }}</span>
           </button>
         </div>
       </header>
@@ -93,7 +121,9 @@ export default {
   data() {
     return {
       username: '',
-      userRole: ''
+      userRole: '',
+      isSidebarCollapsed: false,
+      isMobile: false
     }
   },
   computed: {
@@ -103,11 +133,18 @@ export default {
     userInitials() {
       if (!this.username) return 'U'
       return this.username.charAt(0).toUpperCase()
+    },
+    currentLang() {
+      return this.$i18n.locale
     }
   },
   watch: {
     $route() {
       this.updateUser()
+      // Automatically collapse/close sidebar drawer on route navigation on mobile
+      if (this.isMobile) {
+        this.isSidebarCollapsed = true
+      }
     }
   },
   created() {
@@ -117,6 +154,23 @@ export default {
       axios.defaults.headers.common['Authorization'] = 'Basic ' + token
     }
     this.updateUser()
+    
+    // Initialize resize check and collapsed state
+    this.handleResize()
+    window.addEventListener('resize', this.handleResize)
+    
+    const storedCollapsed = localStorage.getItem('sidebar_collapsed')
+    if (storedCollapsed !== null) {
+      this.isSidebarCollapsed = storedCollapsed === 'true'
+    } else {
+      this.isSidebarCollapsed = this.isMobile
+    }
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize)
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.handleResize)
   },
   methods: {
     updateUser() {
@@ -134,6 +188,23 @@ export default {
       
       // Redirect to login page
       this.$router.push('/login')
+    },
+    changeLang(lang) {
+      this.$i18n.locale = lang
+    },
+    toggleSidebar() {
+      this.isSidebarCollapsed = !this.isSidebarCollapsed
+      localStorage.setItem('sidebar_collapsed', this.isSidebarCollapsed)
+    },
+    closeSidebar() {
+      this.isSidebarCollapsed = true
+      localStorage.setItem('sidebar_collapsed', true)
+    },
+    handleResize() {
+      this.isMobile = window.innerWidth <= 768
+      if (this.isMobile) {
+        this.isSidebarCollapsed = true
+      }
     }
   }
 }
@@ -173,6 +244,7 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid #1e293b;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-brand {
@@ -181,6 +253,7 @@ body {
   gap: 0.75rem;
   padding: 1.5rem 1.75rem;
   border-bottom: 1px solid #1e293b;
+  transition: all 0.2s ease;
 }
 
 .brand-logo {
@@ -260,10 +333,40 @@ body {
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 0 2rem;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-toggle-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+  color: #1e293b;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.toggle-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .header-right {
@@ -328,5 +431,98 @@ body {
   flex-grow: 1;
   overflow-y: auto;
   background-color: #f8fafc;
+}
+
+/* Language Switcher */
+.lang-switcher {
+  display: flex;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 0.2rem;
+  border: 1px solid #e2e8f0;
+  margin-right: 0.5rem;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  color: #1e293b;
+}
+
+.lang-btn.active {
+  background-color: white;
+  color: #6366f1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Collapsed Sidebar on Desktop */
+@media (min-width: 769px) {
+  #app.sidebar-collapsed .sidebar {
+    width: 72px;
+  }
+  #app.sidebar-collapsed .brand-name,
+  #app.sidebar-collapsed .nav-text {
+    display: none;
+  }
+  #app.sidebar-collapsed .sidebar-brand {
+    padding: 1.5rem 0.5rem;
+    justify-content: center;
+  }
+  #app.sidebar-collapsed .nav-item {
+    padding: 0.75rem;
+    justify-content: center;
+    gap: 0;
+  }
+}
+
+/* Mobile Responsiveness Styles */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    position: relative;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 15px -3px rgba(0, 0, 0, 0.1);
+  }
+  
+  #app.drawer-open .sidebar {
+    transform: translateX(0);
+  }
+  
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+  }
+  
+  .top-header {
+    padding: 0 1rem;
+  }
+  
+  .logout-btn span {
+    display: none;
+  }
 }
 </style>

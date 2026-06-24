@@ -2,11 +2,11 @@ from rest_framework import viewsets, permissions
 from django.utils import timezone
 from django.db.models import Sum
 from .models import Enrollment
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
 from .serializers import (
     BranchSerializer, UserSerializer, StudentSerializer, 
     RoomSerializer, CourseSerializer, GroupSerializer, 
-    EnrollmentSerializer, PaymentSerializer, GradeSerializer
+    EnrollmentSerializer, PaymentSerializer, GradeSerializer, AbsenceSerializer
 )
 
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
@@ -74,3 +74,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class GradeViewSet(SoftDeleteModelViewSet):
     queryset = Grade.objects.all()
     serializer_class = GradeSerializer
+
+class AbsenceViewSet(SoftDeleteModelViewSet):
+    queryset = Absence.objects.all()
+    serializer_class = AbsenceSerializer

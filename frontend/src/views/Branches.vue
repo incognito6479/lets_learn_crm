@@ -2,17 +2,17 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Branches</h1>
-        <p class="view-subtitle">Manage company campuses and centers</p>
+        <h1 class="view-title">{{ $t('branches.title') }}</h1>
+        <p class="view-subtitle">{{ $t('branches.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
-        <div class="badge-count" v-if="branches.length">{{ branches.length }} total</div>
+        <div class="badge-count" v-if="branches.length">{{ branches.length }} {{ $t('common.total') }}</div>
         <button @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Branch
+          {{ $t('branches.new') }}
         </button>
       </div>
     </div>
@@ -29,10 +29,10 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Branch Name</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('branches.col_name') }}</th>
+              <th>{{ $t('common.description') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -41,16 +41,16 @@
               <td class="font-semibold">{{ branch.name }}</td>
               <td>{{ branch.description || '-' }}</td>
               <td>
-                <span class="status-badge active">Active</span>
+                <span class="status-badge active">{{ $t('teachers.active') }}</span>
               </td>
               <td class="actions-cell">
-                <button @click="openEditModal(branch)" class="btn-icon" title="Edit Branch">
+                <button @click="openEditModal(branch)" class="btn-icon" :title="$t('branches.modal_edit')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button @click="deleteBranch(branch)" class="btn-icon btn-icon-danger" title="Delete Branch">
+                <button @click="deleteBranch(branch)" class="btn-icon btn-icon-danger" :title="$t('common.delete')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -61,12 +61,12 @@
               </td>
             </tr>
             <tr v-if="!branches.length && !loading">
-              <td colspan="5" class="empty-state">No branches found.</td>
+              <td colspan="5" class="empty-state">{{ $t('branches.no_branches') }}</td>
             </tr>
             <tr v-if="loading">
               <td colspan="5" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading branches...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -78,7 +78,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">{{ isEdit ? 'Edit Branch' : 'Add Branch' }}</h2>
+          <h2 class="modal-title">{{ isEdit ? $t('branches.modal_edit') : $t('branches.modal_new') }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -89,22 +89,22 @@
         <form @submit.prevent="saveBranch">
           <div class="modal-body">
             <div class="form-group">
-              <label for="branchName" class="form-label">Branch Name</label>
+              <label for="branchName" class="form-label">{{ $t('branches.col_name') }}</label>
               <input
                 type="text"
                 id="branchName"
                 v-model="form.name"
                 required
-                placeholder="e.g. Downtown Branch"
+                :placeholder="$t('branches.placeholder_name')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="description" class="form-label">Description (Optional)</label>
+              <label for="description" class="form-label">{{ $t('common.description') }}</label>
               <textarea
                 id="description"
                 v-model="form.description"
-                placeholder="Details about campus facilities or location..."
+                :placeholder="$t('branches.placeholder_desc')"
                 class="form-input"
                 rows="3"
                 style="resize: vertical; font-family: inherit;"
@@ -112,9 +112,9 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
-              {{ submitting ? 'Saving...' : 'Save Changes' }}
+              {{ submitting ? $t('common.loading') : $t('common.save') }}
             </button>
           </div>
         </form>
@@ -159,7 +159,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching branches:', err)
-        this.error = 'Failed to load branches roster from backend.'
+        this.error = this.$t('branches.error_load')
         this.loading = false
       }
     },
@@ -190,12 +190,12 @@ export default {
         this.fetchBranches()
       } catch (err) {
         console.error('Error saving branch:', err)
-        alert('An error occurred while saving the branch record.')
+        alert(this.$t('branches.error_save'))
         this.submitting = false
       }
     },
     async deleteBranch(branch) {
-      if (!confirm(`Are you sure you want to delete branch "${branch.name}"?`)) {
+      if (!confirm(this.$t('branches.delete_confirm', { name: branch.name }))) {
         return
       }
 
@@ -204,7 +204,7 @@ export default {
         this.fetchBranches()
       } catch (err) {
         console.error('Error deleting branch:', err)
-        alert('An error occurred while deleting the branch record. If it has dependent groups/users, deletion is protected.')
+        alert(this.$t('branches.error_delete'))
       }
     }
   }

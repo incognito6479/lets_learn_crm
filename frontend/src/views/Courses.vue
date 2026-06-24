@@ -2,17 +2,17 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Courses</h1>
-        <p class="view-subtitle">Explore curriculum and class prices</p>
+        <h1 class="view-title">{{ $t('courses.title') }}</h1>
+        <p class="view-subtitle">{{ $t('courses.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
-        <div class="badge-count" v-if="courses.length">{{ courses.length }} total</div>
+        <div class="badge-count" v-if="courses.length">{{ courses.length }} {{ $t('common.total') }}</div>
         <button @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Course
+          {{ $t('courses.new') }}
         </button>
       </div>
     </div>
@@ -29,10 +29,10 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Course Name</th>
-              <th>Description</th>
-              <th>Price</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('courses.col_name') }}</th>
+              <th>{{ $t('common.description') }}</th>
+              <th>{{ $t('common.price') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -40,15 +40,15 @@
               <td class="font-mono text-muted">#{{ course.id }}</td>
               <td class="font-semibold">{{ course.name }}</td>
               <td>{{ course.description || '-' }}</td>
-              <td class="font-mono font-semibold">{{ formatPrice(course.price) }} UZS</td>
+              <td class="font-mono font-semibold">{{ formatPrice(course.price) }} {{ $t('common.uzs') }}</td>
               <td class="actions-cell">
-                <button @click="openEditModal(course)" class="btn-icon" title="Edit Course">
+                <button @click="openEditModal(course)" class="btn-icon" :title="$t('courses.modal_edit')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button @click="deleteCourse(course)" class="btn-icon btn-icon-danger" title="Delete Course">
+                <button @click="deleteCourse(course)" class="btn-icon btn-icon-danger" :title="$t('common.delete')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -59,12 +59,12 @@
               </td>
             </tr>
             <tr v-if="!courses.length && !loading">
-              <td colspan="5" class="empty-state">No courses found.</td>
+              <td colspan="5" class="empty-state">{{ $t('courses.no_courses') }}</td>
             </tr>
             <tr v-if="loading">
               <td colspan="5" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading courses...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -76,7 +76,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">{{ isEdit ? 'Edit Course' : 'Add Course' }}</h2>
+          <h2 class="modal-title">{{ isEdit ? $t('courses.modal_edit') : $t('courses.modal_new') }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -87,18 +87,18 @@
         <form @submit.prevent="saveCourse">
           <div class="modal-body">
             <div class="form-group">
-              <label for="courseName" class="form-label">Course Name</label>
+              <label for="courseName" class="form-label">{{ $t('courses.col_name') }}</label>
               <input
                 type="text"
                 id="courseName"
                 v-model="form.name"
                 required
-                placeholder="e.g. Physics Level I"
+                :placeholder="$t('courses.placeholder_name')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="price" class="form-label">Price (UZS)</label>
+              <label for="price" class="form-label">{{ $t('common.price') }} ({{ $t('common.uzs') }})</label>
               <input
                 type="text"
                 inputmode="numeric"
@@ -106,16 +106,16 @@
                 :value="form.price"
                 @input="formatInputPrice"
                 required
-                placeholder="e.g. 4 500"
+                :placeholder="$t('courses.placeholder_price')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label for="description" class="form-label">Description (Optional)</label>
+              <label for="description" class="form-label">{{ $t('common.description') }}</label>
               <textarea
                 id="description"
                 v-model="form.description"
-                placeholder="Course curriculum details, requirements..."
+                :placeholder="$t('courses.placeholder_desc')"
                 class="form-input"
                 rows="3"
                 style="resize: vertical; font-family: inherit;"
@@ -123,9 +123,9 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
-              {{ submitting ? 'Saving...' : 'Save Changes' }}
+              {{ submitting ? $t('common.loading') : $t('common.save') }}
             </button>
           </div>
         </form>
@@ -171,7 +171,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching courses:', err)
-        this.error = 'Failed to load courses catalogue from backend.'
+        this.error = this.$t('courses.error_load')
         this.loading = false
       }
     },
@@ -235,12 +235,12 @@ export default {
         this.fetchCourses()
       } catch (err) {
         console.error('Error saving course:', err)
-        alert('An error occurred while saving the course record.')
+        alert(this.$t('courses.error_save'))
         this.submitting = false
       }
     },
     async deleteCourse(course) {
-      if (!confirm(`Are you sure you want to delete course "${course.name}"?`)) {
+      if (!confirm(this.$t('courses.delete_confirm', { name: course.name }))) {
         return
       }
 
@@ -249,7 +249,7 @@ export default {
         this.fetchCourses()
       } catch (err) {
         console.error('Error deleting course:', err)
-        alert('An error occurred while deleting the course record. If it has dependent groups, deletion is protected.')
+        alert(this.$t('courses.error_delete'))
       }
     },
     formatPrice(price) {

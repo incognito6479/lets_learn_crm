@@ -2,10 +2,10 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Payments</h1>
-        <p class="view-subtitle">Review incoming transactions and student bills</p>
+        <h1 class="view-title">{{ $t('payments.title') }}</h1>
+        <p class="view-subtitle">{{ $t('payments.sub') }}</p>
       </div>
-      <div class="badge-count" v-if="filteredPayments.length">{{ totalPayments }} UZS total</div>
+      <div class="badge-count" v-if="filteredPayments.length">{{ $t('payments.total_collected') }}: {{ totalPayments }} UZS</div>
     </div>
 
     <!-- Error/Warning Banner -->
@@ -19,14 +19,14 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="Search by student name..."
+          :placeholder="$t('payments.search_student')"
           class="form-input"
         />
       </div>
       
       <div style="min-width: 250px;">
         <select v-model="selectedGroup" class="form-input">
-          <option value="">All Groups</option>
+          <option value="">{{ $t('payments.filter_group') }}</option>
           <option v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }} ({{ formatTime(group.starts_at) }}, {{ group.group_days_at || 'Mon-Wed-Fri' }})
           </option>
@@ -41,14 +41,14 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Student</th>
-              <th>Group</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Description</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('stats.student') }}</th>
+              <th>{{ $t('stats.group') }}</th>
+              <th>{{ $t('payments.col_amount') }}</th>
+              <th>{{ $t('payments.col_method') }}</th>
+              <th>{{ $t('payments.col_date') }}</th>
+              <th>{{ $t('payments.col_status') }}</th>
+              <th>{{ $t('common.description') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -59,13 +59,13 @@
               <td class="font-mono font-semibold text-green" :style="!payment.is_active || payment.status === 'canceled' ? 'text-decoration: line-through; color: #94a3b8 !important;' : ''">{{ formatPrice(payment.amount) }} UZS</td>
               <td>
                 <span :class="['status-badge', payment.payment_method || 'cash']">
-                  {{ formatMethod(payment.payment_method) }}
+                  {{ $t('groupDetail.' + (payment.payment_method || 'cash')) }}
                 </span>
               </td>
               <td>{{ formatDate(payment.payment_date) }}</td>
               <td>
                 <span :class="['status-badge', payment.status || 'accepted']">
-                  {{ payment.status || 'accepted' }}
+                  {{ $t('payments.status_' + (payment.status || 'accepted')) }}
                 </span>
               </td>
               <td>{{ payment.description || '-' }}</td>
@@ -74,7 +74,7 @@
                   v-if="payment.is_active && payment.status !== 'canceled'"
                   @click="openCancelModal(payment)"
                   class="btn-icon btn-icon-danger"
-                  title="Cancel Payment"
+                  :title="$t('payments.cancel_modal_title')"
                   style="width: auto; padding: 0 0.5rem; font-size: 0.8rem; font-weight: 600; gap: 0.25rem;"
                 >
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -82,18 +82,18 @@
                     <line x1="15" y1="9" x2="9" y2="15"></line>
                     <line x1="9" y1="9" x2="15" y2="15"></line>
                   </svg>
-                  Cancel
+                  {{ $t('payments.cancel_btn') }}
                 </button>
-                <span v-else class="text-muted" style="font-size: 0.8rem; font-style: italic;">Canceled</span>
+                <span v-else class="text-muted" style="font-size: 0.8rem; font-style: italic;">{{ $t('payments.status_canceled') }}</span>
               </td>
             </tr>
             <tr v-if="!filteredPayments.length && !loading">
-              <td colspan="7" class="empty-state">No payments found.</td>
+              <td colspan="9" class="empty-state">{{ $t('stats.no_payments') }}</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="7" class="loading-state">
+              <td colspan="9" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading payments...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -105,7 +105,7 @@
     <div v-if="showCancelModal" class="modal-backdrop" @click.self="closeCancelModal">
       <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-          <h2 class="modal-title">Cancel Payment</h2>
+          <h2 class="modal-title">{{ $t('payments.cancel_modal_title') }}</h2>
           <button @click="closeCancelModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -116,11 +116,11 @@
         <form @submit.prevent="confirmCancelPayment">
           <div class="modal-body">
             <p class="modal-instructions" style="color: #ef4444; font-weight: 600; margin-bottom: 1.25rem;">
-              Are you sure you want to cancel this payment? This action is irreversible and will restore student debt.
+              {{ $t('payments.cancel_modal_instructions') }}
             </p>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label">Student Name</label>
+              <label class="form-label">{{ $t('stats.student') }}</label>
               <input
                 type="text"
                 :value="getStudentName(selectedPaymentForCancel.student)"
@@ -131,7 +131,7 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label">Group Name</label>
+              <label class="form-label">{{ $t('stats.group') }}</label>
               <input
                 type="text"
                 :value="getGroupName(selectedPaymentForCancel.group)"
@@ -142,7 +142,7 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label">Amount (UZS)</label>
+              <label class="form-label">{{ $t('groupDetail.payment_amount') }}</label>
               <input
                 type="text"
                 :value="formatPrice(selectedPaymentForCancel.amount) + ' UZS'"
@@ -153,10 +153,10 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label">Payment Method</label>
+              <label class="form-label">{{ $t('groupDetail.payment_method') }}</label>
               <input
                 type="text"
-                :value="formatMethod(selectedPaymentForCancel.payment_method)"
+                :value="$t('groupDetail.' + (selectedPaymentForCancel.payment_method || 'cash'))"
                 disabled
                 class="form-input"
                 style="background-color: #f1f5f9; cursor: not-allowed;"
@@ -164,7 +164,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Description</label>
+              <label class="form-label">{{ $t('common.description') }}</label>
               <textarea
                 :value="selectedPaymentForCancel.description || '-'"
                 disabled
@@ -175,13 +175,13 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closeCancelModal" class="btn btn-secondary">Go Back</button>
+            <button type="button" @click="closeCancelModal" class="btn btn-secondary">{{ $t('common.back') }}</button>
             <button
               type="submit"
               class="btn btn-danger"
               :disabled="submittingCancel"
             >
-              {{ submittingCancel ? 'Cancelling...' : 'Yes, Cancel Payment' }}
+              {{ submittingCancel ? $t('common.loading') : $t('payments.void_payment_btn') }}
             </button>
           </div>
         </form>
@@ -252,7 +252,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching payments:', err)
-        this.error = 'Failed to load payments details from backend.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -273,7 +273,8 @@ export default {
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString('en-US', {
+        const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+        return date.toLocaleDateString(locale, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
@@ -315,7 +316,7 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error cancelling payment:', err)
-        alert('An error occurred while cancelling the payment.')
+        alert(this.$t('payments.error_cancel'))
       } finally {
         this.submittingCancel = false
       }

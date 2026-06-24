@@ -2,17 +2,17 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Groups</h1>
-        <p class="view-subtitle">Monitor class schedules and current groups</p>
+        <h1 class="view-title">{{ $t('groups.title') }}</h1>
+        <p class="view-subtitle">{{ $t('groups.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
-        <div class="badge-count" v-if="groups.length">{{ groups.length }} groups</div>
+        <div class="badge-count" v-if="groups.length">{{ $t('common.total') }}: {{ groups.length }}</div>
         <button v-if="userRole !== 'teacher'" @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          New Group
+          {{ $t('groups.new') }}
         </button>
       </div>
     </div>
@@ -28,14 +28,14 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="Search groups by name..."
+          :placeholder="$t('groups.search_placeholder')"
           class="form-input"
         />
       </div>
       
       <div style="width: 200px;">
         <select v-model="selectedBranch" class="form-input">
-          <option value="">All Branches</option>
+          <option value="">{{ $t('groups.all_branches') }}</option>
           <option v-for="branch in branches" :key="branch.id" :value="branch.id">
             {{ branch.name }}
           </option>
@@ -44,7 +44,7 @@
 
       <div style="width: 200px;">
         <select v-model="selectedCourse" class="form-input">
-          <option value="">All Courses</option>
+          <option value="">{{ $t('groups.all_courses') }}</option>
           <option v-for="course in courses" :key="course.id" :value="course.id">
             {{ course.name }}
           </option>
@@ -59,15 +59,15 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Group Name</th>
-              <th>Course</th>
-              <th>Teacher</th>
-              <th>Location (Room)</th>
-              <th>Days</th>
-              <th>Branch</th>
-              <th>Status</th>
-              <th>Price</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('groups.form_name') }}</th>
+              <th>{{ $t('groups.col_course') }}</th>
+              <th>{{ $t('groups.col_teacher') }}</th>
+              <th>{{ $t('groups.col_room') }}</th>
+              <th>{{ $t('groups.col_days') }}</th>
+              <th>{{ $t('groups.col_branch') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th>{{ $t('common.price') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +81,7 @@
               <td>{{ getBranchName(group.branch) }}</td>
               <td>
                 <span :class="['status-badge', group.status || 'enrolled']">
-                  {{ group.status || 'enrolled' }}
+                  {{ $t('groups.status_' + (group.status || 'enrolled')) }}
                 </span>
               </td>
               <td class="font-mono font-semibold">{{ formatPrice(group.price) }} UZS</td>
@@ -109,12 +109,12 @@
               </td>
             </tr>
             <tr v-if="!filteredGroups.length && !loading">
-              <td colspan="9" class="empty-state">No groups found.</td>
+              <td colspan="10" class="empty-state">{{ $t('groups.no_groups') }}</td>
             </tr>
             <tr v-if="loading">
-              <td colspan="9" class="loading-state">
+              <td colspan="10" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading groups...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -126,7 +126,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content" style="max-width: 540px; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header" style="flex-shrink: 0;">
-          <h2 class="modal-title">{{ isEdit ? 'Edit Group' : 'Add Group' }}</h2>
+          <h2 class="modal-title">{{ isEdit ? $t('groups.modal_edit') : $t('groups.modal_new') }}</h2>
           <button @click="closeModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -137,22 +137,22 @@
         <form @submit.prevent="saveGroup" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
           <div class="modal-body" style="overflow-y: auto; flex: 1;">
             <div class="form-group">
-              <label for="groupName" class="form-label">Group Name</label>
+              <label for="groupName" class="form-label">{{ $t('groups.form_name') }}</label>
               <input
                 type="text"
                 id="groupName"
                 v-model="form.name"
                 required
-                placeholder="e.g. Phys-101 Morning"
+                :placeholder="$t('groups.form_name')"
                 class="form-input"
               />
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="modal-form-grid">
               <div class="form-group">
-                <label for="groupBranch" class="form-label">Branch</label>
+                <label for="groupBranch" class="form-label">{{ $t('groups.col_branch') }}</label>
                 <select id="groupBranch" v-model="form.branch" required class="form-input">
-                  <option value="" disabled>Select Branch...</option>
+                  <option value="" disabled>{{ $t('groups.form_select_branch') }}</option>
                   <option v-for="branch in branches" :key="branch.id" :value="branch.id">
                     {{ branch.name }}
                   </option>
@@ -160,9 +160,9 @@
               </div>
  
               <div class="form-group">
-                <label for="groupRoom" class="form-label">Room</label>
+                <label for="groupRoom" class="form-label">{{ $t('groups.col_room') }}</label>
                 <select id="groupRoom" v-model="form.room" required class="form-input" :disabled="!form.branch">
-                  <option value="" disabled>{{ form.branch ? 'Select Room...' : 'Select branch first...' }}</option>
+                  <option value="" disabled>{{ form.branch ? $t('groups.form_select_room') : $t('groups.form_select_branch_first') }}</option>
                   <option v-for="room in filteredRooms" :key="room.id" :value="room.id">
                     {{ room.name }}
                   </option>
@@ -170,11 +170,11 @@
               </div>
             </div>
  
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="modal-form-grid">
               <div class="form-group">
-                <label for="groupCourse" class="form-label">Course</label>
+                <label for="groupCourse" class="form-label">{{ $t('groups.col_course') }}</label>
                 <select id="groupCourse" v-model="form.course" required class="form-input" @change="handleCourseChange">
-                  <option value="" disabled>Select Course...</option>
+                  <option value="" disabled>{{ $t('groups.form_select_course') }}</option>
                   <option v-for="course in courses" :key="course.id" :value="course.id">
                     {{ course.name }}
                   </option>
@@ -182,9 +182,9 @@
               </div>
  
               <div class="form-group">
-                <label for="groupTeacher" class="form-label">Teacher</label>
+                <label for="groupTeacher" class="form-label">{{ $t('groups.col_teacher') }}</label>
                 <select id="groupTeacher" v-model="form.teacher" required class="form-input">
-                  <option value="" disabled>Select Teacher...</option>
+                  <option value="" disabled>{{ $t('groups.form_select_teacher') }}</option>
                   <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
                     {{ teacher.first_name }} {{ teacher.last_name }}
                   </option>
@@ -192,9 +192,9 @@
               </div>
             </div>
  
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="modal-form-grid">
               <div class="form-group">
-                <label for="startedAt" class="form-label">Start Date</label>
+                <label for="startedAt" class="form-label">{{ $t('groups.form_start_date') }}</label>
                 <input
                   type="date"
                   id="startedAt"
@@ -205,7 +205,7 @@
               </div>
  
               <div class="form-group">
-                <label for="startsAt" class="form-label">Start Time</label>
+                <label for="startsAt" class="form-label">{{ $t('groups.form_time') }}</label>
                 <input
                   type="time"
                   id="startsAt"
@@ -216,9 +216,9 @@
               </div>
             </div>
  
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="modal-form-grid">
               <div class="form-group">
-                <label for="duration" class="form-label">Duration (Minutes)</label>
+                <label for="duration" class="form-label">{{ $t('groups.form_duration') }}</label>
                 <input
                   type="number"
                   id="duration"
@@ -231,7 +231,7 @@
               </div>
  
               <div class="form-group">
-                <label for="groupPrice" class="form-label">Price (UZS)</label>
+                <label for="groupPrice" class="form-label">{{ $t('groups.col_price') }}</label>
                 <input
                   type="text"
                   inputmode="numeric"
@@ -244,9 +244,9 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="modal-form-grid">
               <div class="form-group">
-                <label for="groupDays" class="form-label">Days</label>
+                <label for="groupDays" class="form-label">{{ $t('groups.col_days') }}</label>
                 <select id="groupDays" v-model="form.group_days_at" required class="form-input">
                   <option value="Mon-Wed-Fri">Mon-Wed-Fri</option>
                   <option value="Tue-Thur-Sat">Tue-Thur-Sat</option>
@@ -255,21 +255,21 @@
               </div>
  
               <div class="form-group">
-                <label for="groupStatus" class="form-label">Status</label>
+                <label for="groupStatus" class="form-label">{{ $t('common.status') }}</label>
                 <select id="groupStatus" v-model="form.status" required class="form-input">
-                  <option value="ongoing">Ongoing</option>
-                  <option value="finished">Finished</option>
-                  <option value="enrolled">Enrolled</option>
+                  <option value="ongoing">{{ $t('groups.status_ongoing') }}</option>
+                  <option value="finished">{{ $t('groups.status_finished') }}</option>
+                  <option value="enrolled">{{ $t('groups.status_enrolled') }}</option>
                 </select>
               </div>
             </div>
  
             <div class="form-group">
-              <label for="description" class="form-label">Description (Optional)</label>
+              <label for="description" class="form-label">{{ $t('common.description') }}</label>
               <textarea
                 id="description"
                 v-model="form.description"
-                placeholder="Details about group, target exam..."
+                placeholder="..."
                 class="form-input"
                 rows="3"
                 style="resize: vertical; font-family: inherit;"
@@ -277,9 +277,9 @@
             </div>
           </div>
           <div class="modal-footer" style="flex-shrink: 0;">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
-              {{ submitting ? 'Saving...' : 'Save Changes' }}
+              {{ submitting ? $t('common.saving') : $t('common.save') }}
             </button>
           </div>
         </form>
@@ -520,13 +520,13 @@ export default {
         }
       } catch (err) {
         console.error('Error saving group:', err)
-        alert('An error occurred while saving the group record.')
+        alert(this.$t('groups.error_save'))
       } finally {
         this.submitting = false
       }
     },
     async deleteGroup(group) {
-      if (!confirm(`Are you sure you want to delete group "${group.name}"?`)) {
+      if (!confirm(this.$t('groups.delete_confirm', { name: group.name }))) {
         return
       }
       try {
@@ -534,7 +534,7 @@ export default {
         this.fetchData()
       } catch (err) {
         console.error('Error deleting group:', err)
-        alert('An error occurred while deleting the group record.')
+        alert(this.$t('groups.error_delete'))
       }
     },
     navigateToGroup(id) {

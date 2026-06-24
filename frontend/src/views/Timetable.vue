@@ -2,11 +2,11 @@
   <div class="view-container timetable-view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Weekly Timetable</h1>
-        <p class="view-subtitle">Class schedule overview from Monday to Saturday, 9:00 AM - 6:00 PM</p>
+        <h1 class="view-title">{{ $t('timetable.title') }}</h1>
+        <p class="view-subtitle">{{ $t('timetable.sub') }}</p>
       </div>
       <div v-if="layout.positionedCards.length" class="badge-count">
-        {{ layout.positionedCards.length }} active class slot(s)
+        {{ $t('timetable.active_slots', { count: layout.positionedCards.length }) }}
       </div>
     </div>
 
@@ -19,7 +19,7 @@
     <div class="filter-bar" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
       <div style="width: 200px;">
         <select v-model="selectedBranch" class="form-input" @change="handleBranchChange">
-          <option value="">All Branches</option>
+          <option value="">{{ $t('timetable.filter_branch') }}</option>
           <option v-for="branch in branches" :key="branch.id" :value="branch.id">
             {{ branch.name }}
           </option>
@@ -28,7 +28,7 @@
 
       <div style="width: 200px;">
         <select v-model="selectedRoom" class="form-input" :disabled="!selectedBranch">
-          <option value="">{{ selectedBranch ? 'All Rooms' : 'Select branch first' }}</option>
+          <option value="">{{ selectedBranch ? $t('timetable.filter_room') : $t('timetable.select_branch_first') }}</option>
           <option v-for="room in filteredRooms" :key="room.id" :value="room.id">
             {{ room.name }}
           </option>
@@ -37,7 +37,7 @@
 
       <div style="width: 200px;" v-if="userRole !== 'teacher'">
         <select v-model="selectedTeacher" class="form-input">
-          <option value="">All Teachers</option>
+          <option value="">{{ $t('timetable.filter_teacher') }}</option>
           <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
             {{ teacher.first_name }} {{ teacher.last_name }}
           </option>
@@ -49,13 +49,13 @@
     <div class="table-card" style="padding: 1.5rem; background: white; overflow-x: auto;">
       <div v-if="loading" class="loading-state" style="padding: 6rem 0;">
         <div class="spinner"></div>
-        <span style="margin-top: 1rem; display: block; color: #64748b;">Loading timetable schedules...</span>
+        <span style="margin-top: 1rem; display: block; color: #64748b;">{{ $t('timetable.loading') }}</span>
       </div>
 
       <div v-else class="timetable-wrapper">
         <div class="timetable-grid" :style="{ gridTemplateRows: `40px repeat(${layout.totalRows}, 80px)` }">
           <!-- Top Left Empty corner -->
-          <div class="grid-header-cell day-time-corner">Day / Time</div>
+          <div class="grid-header-cell day-time-corner">{{ $t('timetable.day_time') }}</div>
 
           <!-- Day Headers (Row Headers, Column 1) -->
           <div 
@@ -155,16 +155,17 @@ export default {
     layout() {
       // Group cards by day (0 to 5)
       const dayCards = Array.from({ length: 6 }, () => [])
+      const dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat']
       
       this.groups.forEach(group => {
         if (group.status === 'finished') return
         
         const teacher = this.teachers.find(t => t.id === group.teacher) || {}
-        const teacherName = teacher.first_name ? `${teacher.first_name} ${teacher.last_name}` : `Teacher #${group.teacher}`
+        const teacherName = teacher.first_name ? `${teacher.first_name} ${teacher.last_name}` : `${this.$t('groupDetail.teacher')} #${group.teacher}`
         const room = this.rooms.find(r => r.id === group.room) || {}
-        const roomName = room.name || `Room #${group.room}`
+        const roomName = room.name || `${this.$t('groupDetail.room')} #${group.room}`
         const branch = this.branches.find(b => b.id === group.branch) || {}
-        const branchName = branch.name || `Branch #${group.branch}`
+        const branchName = branch.name || `${this.$t('groupDetail.branch')} #${group.branch}`
 
         if (!group.starts_at) return
         const parts = group.starts_at.split(':')
@@ -270,7 +271,7 @@ export default {
         const rowCount = Math.max(1, lanes.length)
 
         dayHeaders.push({
-          name: this.days[dayIdx],
+          name: this.$t('timetable.days.' + dayKeys[dayIdx]),
           gridRowStart: currentGridRow,
           gridRowEnd: currentGridRow + rowCount
         })
@@ -330,7 +331,7 @@ export default {
         this.courses = coursesRes.data
       } catch (err) {
         console.error('Error fetching timetable data:', err)
-        this.error = 'Failed to load timetable parameters from backend API.'
+        this.error = this.$t('timetable.error_load')
       } finally {
         this.loading = false
       }

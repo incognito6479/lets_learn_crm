@@ -2,12 +2,12 @@
   <div class="view-container">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Student Debts</h1>
-        <p class="view-subtitle">Review and filter outstanding student balances across branches and groups</p>
+        <h1 class="view-title">{{ $t('debts.title') }}</h1>
+        <p class="view-subtitle">{{ $t('debts.sub') }}</p>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;" v-if="filteredDebts.length">
-        <div class="badge-count">{{ filteredDebts.length }} active debt(s)</div>
-        <div class="badge-count text-danger-badge">{{ formatPrice(totalFilteredDebt) }} UZS outstanding</div>
+        <div class="badge-count">{{ filteredDebts.length }} {{ $t('debts.unique_count') }}</div>
+        <div class="badge-count text-danger-badge">{{ $t('debts.total_debts') }}: {{ formatPrice(totalFilteredDebt) }} UZS</div>
       </div>
     </div>
 
@@ -22,14 +22,14 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="Search by student name..."
+          :placeholder="$t('payments.search_student')"
           class="form-input"
         />
       </div>
       
       <div style="width: 200px;">
         <select v-model="selectedBranch" class="form-input" @change="selectedGroup = ''">
-          <option value="">All Branches</option>
+          <option value="">{{ $t('timetable.filter_branch') }}</option>
           <option v-for="branch in branches" :key="branch.id" :value="branch.id">
             {{ branch.name }}
           </option>
@@ -38,7 +38,7 @@
 
       <div style="min-width: 250px;">
         <select v-model="selectedGroup" class="form-input">
-          <option value="">All Groups</option>
+          <option value="">{{ $t('payments.filter_group') }}</option>
           <option v-for="group in filteredGroupsForSelect" :key="group.id" :value="group.id">
             {{ group.name }} ({{ formatTime(group.starts_at) }}, {{ group.group_days_at || 'Mon-Wed-Fri' }})
           </option>
@@ -53,13 +53,13 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Student Name</th>
-              <th>Group Name</th>
-              <th>Branch</th>
-              <th>Phone Number</th>
-              <th>Enrollment Date</th>
-              <th>Debt Amount</th>
-              <th style="text-align: right;">Actions</th>
+              <th>{{ $t('groupDetail.student_fullname') }}</th>
+              <th>{{ $t('stats.group') }}</th>
+              <th>{{ $t('groups.col_branch') }}</th>
+              <th>{{ $t('common.phone') }}</th>
+              <th>{{ $t('groupDetail.enrollment_date') }}</th>
+              <th>{{ $t('debts.col_debt') }}</th>
+              <th style="text-align: right;">{{ $t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -72,16 +72,16 @@
               <td>{{ formatDate(debt.date) }}</td>
               <td class="font-mono font-bold text-red">{{ formatPrice(debt.debt_amount) }} UZS</td>
               <td class="actions-cell">
-                <button @click.stop="openPaymentModal(debt)" class="btn-pay" title="Record Payment">
-                  Pay
+                <button @click.stop="openPaymentModal(debt)" class="btn-pay" :title="$t('groupDetail.record_payment_title')">
+                  {{ $t('debts.action_pay') }}
                 </button>
-                <button @click.stop="navigateToEnrollment(debt.enrollmentId)" class="btn-icon" title="View Enrollment Details">
+                <button @click.stop="navigateToEnrollment(debt.enrollmentId)" class="btn-icon" :title="$t('debts.action_view')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
-                <button @click.stop="navigateToGroup(debt.groupId)" class="btn-icon" title="View Group Details">
+                <button @click.stop="navigateToGroup(debt.groupId)" class="btn-icon" :title="$t('groupDetail.details_title')">
                   <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -92,12 +92,12 @@
               </td>
             </tr>
             <tr v-if="!filteredDebts.length && !loading">
-              <td colspan="8" class="empty-state">No student debts found matching the filters.</td>
+              <td colspan="8" class="empty-state">{{ $t('debts.no_debts') }}</td>
             </tr>
             <tr v-if="loading">
               <td colspan="8" class="loading-state">
                 <div class="spinner"></div>
-                <span>Loading debts data...</span>
+                <span>{{ $t('common.loading') }}</span>
               </td>
             </tr>
           </tbody>
@@ -109,7 +109,7 @@
     <div v-if="showPaymentModal" class="modal-backdrop" @click.self="closePaymentModal">
       <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-          <h2 class="modal-title">Record Payment</h2>
+          <h2 class="modal-title">{{ $t('groupDetail.record_payment_title') }}</h2>
           <button @click="closePaymentModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -120,11 +120,11 @@
         <form @submit.prevent="confirmPayment">
           <div class="modal-body">
             <p class="modal-instructions" style="margin-bottom: 1.25rem; text-align: left;" v-if="paymentEnrollment">
-              Confirm payment for student <strong>{{ paymentEnrollment.studentName }}</strong> in group <strong>{{ paymentEnrollment.groupName }}</strong>.
+              <span v-html="$t('groupDetail.confirm_payment_instructions', { student: '<strong>' + paymentEnrollment.studentName + '</strong>', group: '<strong>' + paymentEnrollment.groupName + '</strong>' })"></span>
             </p>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Amount (UZS)</label>
+              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_amount') }}</label>
               <input
                 type="text"
                 inputmode="numeric"
@@ -138,33 +138,33 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Payment Method</label>
+              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_method') }}</label>
               <select id="paymentMethod" v-model="paymentForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
+                <option value="cash">{{ $t('groupDetail.cash') }}</option>
+                <option value="card">{{ $t('groupDetail.card') }}</option>
               </select>
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Description (Optional)</label>
+              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_desc') }}</label>
               <textarea
                 id="paymentDescription"
                 v-model="paymentForm.description"
                 class="form-input"
                 rows="3"
-                placeholder="e.g. Monthly tuition fee payment"
+                :placeholder="$t('groupDetail.payment_desc_placeholder')"
                 style="width: 100%; box-sizing: border-box; resize: vertical;"
               ></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closePaymentModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closePaymentModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button
               type="submit"
               class="btn btn-primary"
               :disabled="submittingPayment || !paymentForm.amount"
             >
-              {{ submittingPayment ? 'Processing...' : 'Confirm Payment' }}
+              {{ submittingPayment ? $t('groupDetail.processing') : $t('groupDetail.confirm_payment_btn') }}
             </button>
           </div>
         </form>
@@ -270,7 +270,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching debts data:', err)
-        this.error = 'Failed to load outstanding debts from backend.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -283,7 +283,8 @@ export default {
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+        return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
       } catch (e) {
         return dateStr
       }
@@ -354,7 +355,7 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error confirming payment:', err)
-        alert('An error occurred while confirming the payment.')
+        alert(this.$t('groupDetail.error_payment'))
       } finally {
         this.submittingPayment = false
       }

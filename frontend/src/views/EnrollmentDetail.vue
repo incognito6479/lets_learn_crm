@@ -7,7 +7,7 @@
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back
+        {{ $t('common.back') }}
       </button>
     </div>
 
@@ -18,7 +18,7 @@
 
     <div v-if="loading" class="loading-state-full">
       <div class="spinner"></div>
-      <span>Loading enrollment details...</span>
+      <span>{{ $t('common.loading') }}</span>
     </div>
 
     <div v-if="!loading && enrollment" class="detail-grid-layout">
@@ -27,7 +27,7 @@
         <!-- Student Info Card -->
         <div class="detail-card glass-panel">
           <div class="panel-header">
-            <h2 class="panel-title">Student Profile</h2>
+            <h2 class="panel-title">{{ $t('enrollmentDetail.profile_card') }}</h2>
           </div>
           <div class="panel-body">
             <div class="profile-header-block">
@@ -35,26 +35,26 @@
               <div>
                 <h3 class="profile-name">{{ student.full_name }}</h3>
                 <span :class="['status-badge', enrollment.status || 'enrolled']">
-                  {{ enrollment.status || 'enrolled' }}
+                  {{ $t('groupDetail.status_' + (enrollment.status || 'enrolled')) }}
                 </span>
               </div>
             </div>
             
             <div class="info-fields-grid">
               <div class="info-field">
-                <span class="field-label">Phone Number 1</span>
+                <span class="field-label">{{ $t('groupDetail.student_phone1') }}</span>
                 <span class="field-value">{{ student.phone1 || '-' }}</span>
               </div>
               <div class="info-field" v-if="student.phone2">
-                <span class="field-label">Phone Number 2</span>
+                <span class="field-label">{{ $t('groupDetail.student_phone2') }}</span>
                 <span class="field-value">{{ student.phone2 }}</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Date Joined Group</span>
+                <span class="field-label">{{ $t('enrollmentDetail.enroll_date') }}</span>
                 <span class="field-value">{{ formatDate(enrollment.date) }}</span>
               </div>
               <div class="info-field" style="grid-column: span 2;" v-if="student.description">
-                <span class="field-label">Student Note</span>
+                <span class="field-label">{{ $t('common.description') }}</span>
                 <span class="field-value description-text">{{ student.description }}</span>
               </div>
             </div>
@@ -64,39 +64,39 @@
         <!-- Group & Class Details Card -->
         <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
           <div class="panel-header">
-            <h2 class="panel-title">Group & Schedule Details</h2>
+            <h2 class="panel-title">{{ $t('groupDetail.details_title') }}</h2>
           </div>
           <div class="panel-body">
             <div class="info-fields-grid">
               <div class="info-field">
-                <span class="field-label">Group Name</span>
+                <span class="field-label">{{ $t('stats.group') }}</span>
                 <span class="field-value highlight-text" @click="$router.push(`/groups/${group.id}`)" style="cursor: pointer;">
                   {{ group.name }} &rarr;
                 </span>
               </div>
               <div class="info-field">
-                <span class="field-label">Course</span>
+                <span class="field-label">{{ $t('groupDetail.course') }}</span>
                 <span class="field-value">{{ getCourseName(group.course) }}</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Instructor</span>
+                <span class="field-label">{{ $t('groupDetail.teacher') }}</span>
                 <span class="field-value">{{ getTeacherName(group.teacher) }}</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Branch & Room</span>
+                <span class="field-label">{{ $t('groupDetail.branch') }} &amp; {{ $t('groupDetail.room') }}</span>
                 <span class="field-value">{{ getBranchName(group.branch) }} ({{ getRoomName(group.room) }})</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Lesson Starts At</span>
+                <span class="field-label">{{ $t('groupDetail.time') }}</span>
                 <span class="field-value">{{ formatTime(group.starts_at) }}</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Days</span>
+                <span class="field-label">{{ $t('groupDetail.days') }}</span>
                 <span class="field-value">{{ group.group_days_at || 'Mon-Wed-Fri' }}</span>
               </div>
               <div class="info-field">
-                <span class="field-label">Duration</span>
-                <span class="field-value">{{ group.duration }} minutes</span>
+                <span class="field-label">{{ $t('groupDetail.duration') }}</span>
+                <span class="field-value">{{ $t('groupDetail.duration_value', { val: group.duration }) }}</span>
               </div>
             </div>
           </div>
@@ -105,36 +105,36 @@
         <!-- Student's Enrolled Groups & Debt Status Card -->
         <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
           <div class="panel-header">
-            <h2 class="panel-title">Student's Enrolled Groups & Debt Status</h2>
+            <h2 class="panel-title">{{ $t('enrollmentDetail.all_groups') }}</h2>
           </div>
           <div class="panel-body">
             <div class="table-wrapper" style="box-shadow: none; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Group</th>
-                    <th>Branch</th>
-                    <th>Enrollment Status</th>
-                    <th>Payment Status</th>
-                    <th style="text-align: right;">Action</th>
+                    <th>{{ $t('stats.group') }}</th>
+                    <th>{{ $t('groupDetail.branch') }}</th>
+                    <th>{{ $t('groupDetail.enrollment_status') }}</th>
+                    <th>{{ $t('groupDetail.payment_status_label') }}</th>
+                    <th style="text-align: right;">{{ $t('common.actions') }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="item in studentEnrollments" :key="item.id" :class="['table-row', { 'current-group-row': item.id === enrollment.id }]">
                     <td class="font-semibold">
                       {{ item.groupName }}
-                      <span v-if="item.id === enrollment.id" class="current-label-badge">Current</span>
+                      <span v-if="item.id === enrollment.id" class="current-label-badge">{{ $t('enrollmentDetail.current_badge') }}</span>
                     </td>
                     <td>{{ item.branchName }}</td>
                     <td>
                       <span :class="['status-badge', item.status || 'enrolled']">
-                        {{ item.status || 'enrolled' }}
+                        {{ $t('groupDetail.status_' + (item.status || 'enrolled')) }}
                       </span>
                     </td>
                     <td>
                       <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
                         <span :class="['status-badge', item.payment_status || 'debt']">
-                          {{ item.payment_status || 'debt' }}
+                          {{ $t('groupDetail.status_' + (item.payment_status || 'debt')) }}
                         </span>
                         <span v-if="(item.payment_status || 'debt') === 'debt'" class="table-debt-amount">
                           {{ formatPrice(item.debt_amount) }} UZS
@@ -142,7 +142,7 @@
                       </div>
                     </td>
                     <td style="text-align: right;">
-                      <button @click="$router.push(`/enrollments/${item.id}`)" class="btn-icon" title="View Detail" :disabled="item.id === enrollment.id">
+                      <button @click="$router.push(`/enrollments/${item.id}`)" class="btn-icon" :title="$t('debts.action_view')" :disabled="item.id === enrollment.id">
                         <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
@@ -151,7 +151,7 @@
                     </td>
                   </tr>
                   <tr v-if="!studentEnrollments.length">
-                    <td colspan="5" class="empty-state">No group enrollments registered for this student.</td>
+                    <td colspan="5" class="empty-state">{{ $t('enrollmentDetail.no_enrollments') }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -165,17 +165,17 @@
         <!-- Balance Overview Card -->
         <div class="detail-card glass-panel balance-summary-card">
           <div class="panel-header">
-            <h2 class="panel-title">Payment & Debt Summary</h2>
+            <h2 class="panel-title">{{ $t('enrollmentDetail.title') }}</h2>
           </div>
           <div class="panel-body">
             <div class="balance-display-block">
-              <span class="balance-label">Outstanding Debt Balance</span>
+              <span class="balance-label">{{ $t('enrollmentDetail.outstanding_balance') }}</span>
               <h1 :class="['balance-amount', enrollment.payment_status === 'debt' ? 'text-red' : 'text-green']">
                 {{ formatPrice(enrollment.debt_amount) }} UZS
               </h1>
               <div class="badge-status-row" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
                 <span :class="['status-badge', enrollment.payment_status || 'debt']">
-                  Payment Status: {{ enrollment.payment_status || 'debt' }}
+                  {{ $t('groupDetail.payment_status_label') }}: {{ $t('groupDetail.status_' + (enrollment.payment_status || 'debt')) }}
                 </span>
                 <button
                   v-if="(enrollment.payment_status || 'debt') === 'debt' && enrollment.status !== 'dropped'"
@@ -183,18 +183,18 @@
                   class="btn btn-primary"
                   style="font-size: 0.85rem; padding: 0.45rem 1.25rem; font-weight: 600; width: 100%; justify-content: center;"
                 >
-                  Pay
+                  {{ $t('debts.action_pay') }}
                 </button>
               </div>
             </div>
 
             <div class="group-pricing-info">
               <div class="price-row">
-                <span>Group Rate (Monthly):</span>
+                <span>{{ $t('groups.col_price') }}:</span>
                 <strong>{{ formatPrice(group.price) }} UZS</strong>
               </div>
               <div class="price-row">
-                <span>Total Paid for Group:</span>
+                <span>{{ $t('enrollmentDetail.paid') }}:</span>
                 <strong>{{ formatPrice(totalPaymentsForGroup) }} UZS</strong>
               </div>
             </div>
@@ -204,7 +204,7 @@
         <!-- Payments Log Card -->
         <div class="detail-card glass-panel" style="margin-top: 1.5rem;">
           <div class="panel-header">
-            <h2 class="panel-title">Payments Log (This Group)</h2>
+            <h2 class="panel-title">{{ $t('enrollmentDetail.payments_history') }}</h2>
           </div>
           <div class="panel-body">
             <div class="timeline-wrapper">
@@ -215,19 +215,19 @@
                     <span class="timeline-amount" :style="!payment.is_active || payment.status === 'canceled' ? 'text-decoration: line-through; color: #94a3b8;' : ''">{{ formatPrice(payment.amount) }} UZS</span>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                       <span :class="['status-badge', payment.payment_method || 'cash']">
-                        {{ formatMethod(payment.payment_method) }}
+                        {{ $t('groupDetail.' + (payment.payment_method || 'cash')) }}
                       </span>
                       <span :class="['status-badge', payment.status || 'accepted']">
-                        {{ payment.status || 'accepted' }}
+                        {{ $t('payments.status_' + (payment.status || 'accepted')) }}
                       </span>
                     </div>
                   </div>
                   <span class="timeline-date">{{ formatDateTime(payment.payment_date) }}</span>
-                  <p class="timeline-desc">{{ payment.description || 'No description provided.' }}</p>
+                  <p class="timeline-desc">{{ payment.description || '-' }}</p>
                 </div>
               </div>
               <div v-if="!paymentsForGroup.length" class="empty-state" style="padding: 1.5rem 0;">
-                No payments recorded yet for this group.
+                {{ $t('enrollmentDetail.no_payments') }}
               </div>
             </div>
           </div>
@@ -239,7 +239,7 @@
     <div v-if="showPaymentModal" class="modal-backdrop" @click.self="closePaymentModal">
       <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-          <h2 class="modal-title">Record Payment</h2>
+          <h2 class="modal-title">{{ $t('groupDetail.record_payment_title') }}</h2>
           <button @click="closePaymentModal" class="modal-close">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -250,11 +250,11 @@
         <form @submit.prevent="confirmPayment">
           <div class="modal-body">
             <p class="modal-instructions" style="margin-bottom: 1.25rem; text-align: left;">
-              Confirm payment for student <strong>{{ student.full_name }}</strong> in group <strong>{{ group.name }}</strong>.
+              <span v-html="$t('groupDetail.confirm_payment_instructions', { student: '<strong>' + student.full_name + '</strong>', group: '<strong>' + group.name + '</strong>' })"></span>
             </p>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Amount (UZS)</label>
+              <label for="paymentAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_amount') }}</label>
               <input
                 type="text"
                 inputmode="numeric"
@@ -268,33 +268,33 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Payment Method</label>
+              <label for="paymentMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_method') }}</label>
               <select id="paymentMethod" v-model="paymentForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
+                <option value="cash">{{ $t('groupDetail.cash') }}</option>
+                <option value="card">{{ $t('groupDetail.card') }}</option>
               </select>
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
-              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Description (Optional)</label>
+              <label for="paymentDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_desc') }}</label>
               <textarea
                 id="paymentDescription"
                 v-model="paymentForm.description"
                 class="form-input"
                 rows="3"
-                placeholder="e.g. Monthly tuition fee payment"
+                :placeholder="$t('groupDetail.payment_desc_placeholder')"
                 style="width: 100%; box-sizing: border-box; resize: vertical;"
               ></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" @click="closePaymentModal" class="btn btn-secondary">Cancel</button>
+            <button type="button" @click="closePaymentModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button
               type="submit"
               class="btn btn-primary"
               :disabled="submittingPayment || !paymentForm.amount"
             >
-              {{ submittingPayment ? 'Processing...' : 'Confirm Payment' }}
+              {{ submittingPayment ? $t('groupDetail.processing') : $t('groupDetail.confirm_payment_btn') }}
             </button>
           </div>
         </form>
@@ -416,7 +416,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching enrollment details:', err)
-        this.error = 'Failed to load enrollment record details from the server.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -455,7 +455,8 @@ export default {
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+        return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
       } catch (e) {
         return dateStr
       }
@@ -464,7 +465,8 @@ export default {
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString('en-US', {
+        const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+        return date.toLocaleDateString(locale, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
@@ -530,7 +532,7 @@ export default {
         await this.fetchData()
       } catch (err) {
         console.error('Error confirming payment:', err)
-        alert('An error occurred while confirming the payment.')
+        alert(this.$t('groupDetail.error_payment'))
       } finally {
         this.submittingPayment = false
       }

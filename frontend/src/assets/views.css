@@ -435,3 +435,51 @@ select.form-input:focus {
 .form-input::placeholder {
   color: #94a3b8;
 }
+
+/* Responsive Grid for Modal Forms */
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .modal-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .view-container {
+    padding: 1.25rem 1rem;
+  }
+  
+  .view-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .view-header > div:last-child,
+  .view-header > style + div,
+  .view-header > div + div {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .modal-content {
+    max-width: 92vw;
+    margin: 1.5rem auto;
+  }
+  
+  .modal-body {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  
+  .modal-footer {
+    padding: 1rem 1.25rem;
+  }
+}

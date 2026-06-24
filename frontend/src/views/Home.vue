@@ -2,8 +2,8 @@
   <div class="dashboard-home">
     <!-- Header Section -->
     <div class="home-header">
-      <h1 class="welcome-title">Dashboard Overview</h1>
-      <p class="welcome-subtitle">Welcome back, {{ username }}! Here is what's happening today.</p>
+      <h1 class="welcome-title">{{ $t('stats.dashboard') }}</h1>
+      <p class="welcome-subtitle">{{ $t('stats.welcome', { name: username }) }}</p>
     </div>
 
     <!-- Error/Warning Banner -->
@@ -17,7 +17,7 @@
       <div class="stat-card card-purple" @click="$router.push('/students')">
         <div class="card-content">
           <div class="card-info">
-            <span class="card-label">Registered Students</span>
+            <span class="card-label">{{ $t('stats.registered_students') }}</span>
             <h2 class="card-value" v-if="!loading">{{ studentCount }}</h2>
             <div class="spinner-small" v-else></div>
           </div>
@@ -29,7 +29,7 @@
           </div>
         </div>
         <div class="card-footer">
-          <span>View all students &rarr;</span>
+          <span>{{ $t('stats.view_students') }}</span>
         </div>
       </div>
 
@@ -37,7 +37,7 @@
       <div class="stat-card card-blue" @click="$router.push('/teachers')">
         <div class="card-content">
           <div class="card-info">
-            <span class="card-label">Active Instructors</span>
+            <span class="card-label">{{ $t('stats.active_teachers') }}</span>
             <h2 class="card-value" v-if="!loading">{{ teacherCount }}</h2>
             <div class="spinner-small" v-else></div>
           </div>
@@ -51,7 +51,7 @@
           </div>
         </div>
         <div class="card-footer">
-          <span>View all instructors &rarr;</span>
+          <span>{{ $t('stats.view_teachers') }}</span>
         </div>
       </div>
 
@@ -59,7 +59,7 @@
       <div class="stat-card card-red" @click="$router.push('/debts')">
         <div class="card-content">
           <div class="card-info">
-            <span class="card-label">Outstanding Debt</span>
+            <span class="card-label">{{ $t('stats.outstanding_debt') }}</span>
             <h2 class="card-value" v-if="!loading">{{ formatPrice(totalDebtAmount) }} UZS</h2>
             <div class="spinner-small" v-else></div>
           </div>
@@ -72,7 +72,7 @@
           </div>
         </div>
         <div class="card-footer">
-          <span>{{ debtStudentsCount }} students in debt &rarr;</span>
+          <span>{{ $t('stats.students_in_debt', { count: debtStudentsCount }) }}</span>
         </div>
       </div>
 
@@ -80,7 +80,7 @@
       <div class="stat-card card-green" @click="$router.push('/groups')">
         <div class="card-content">
           <div class="card-info">
-            <span class="card-label">Active Groups</span>
+            <span class="card-label">{{ $t('stats.active_groups') }}</span>
             <h2 class="card-value" v-if="!loading">{{ activeGroupsCount }}</h2>
             <div class="spinner-small" v-else></div>
           </div>
@@ -94,7 +94,7 @@
           </div>
         </div>
         <div class="card-footer">
-          <span>View ongoing classes &rarr;</span>
+          <span>{{ $t('stats.view_groups') }}</span>
         </div>
       </div>
 
@@ -102,7 +102,7 @@
       <div class="stat-card card-orange non-clickable">
         <div class="card-content">
           <div class="card-info">
-            <span class="card-label">Current Month Income</span>
+            <span class="card-label">{{ $t('stats.monthly_income') }}</span>
             <h2 class="card-value" v-if="!loading">{{ formatPrice(currentMonthIncome) }} UZS</h2>
             <div class="spinner-small" v-else></div>
           </div>
@@ -114,7 +114,7 @@
           </div>
         </div>
         <div class="card-footer">
-          <span>Total collected this month</span>
+          <span>{{ $t('stats.income_collected') }}</span>
         </div>
       </div>
     </div>
@@ -191,7 +191,7 @@ export default {
         this.loading = false
       } catch (err) {
         console.error('Error fetching statistics:', err)
-        this.error = 'Unable to connect to backend API.'
+        this.error = this.$t('stats.api_error')
         this.loading = false
       }
     },
@@ -249,7 +249,7 @@ export default {
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
