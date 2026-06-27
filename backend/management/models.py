@@ -42,7 +42,7 @@ class Student(BaseModel):
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.full_name
+        return f"{self.full_name} ({self.phone1})"
 
 class Room(BaseModel):
     name = models.CharField(max_length=255)

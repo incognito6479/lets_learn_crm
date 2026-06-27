@@ -40,9 +40,14 @@ services:
     depends_on:
       - backend
 
-  scheduler:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  celery_worker:
     build: ./backend
-    command: python manage.py run_scheduler
+    command: celery -A config worker --loglevel=info
     volumes:
       - ./backend:/app
     environment:
@@ -53,8 +58,30 @@ services:
       - DB_PORT=5432
       - DEBUG=True
       - SECRET_KEY=django-insecure-key-for-dev
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
+      - redis
+
+  celery_beat:
+    build: ./backend
+    command: celery -A config beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    environment:
+      - DB_NAME=learning_center
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-key-for-dev
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:
