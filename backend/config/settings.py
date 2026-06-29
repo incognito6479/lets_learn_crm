@@ -113,9 +113,9 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
 CELERY_BEAT_SCHEDULE = {
-    'check-student-debts-every-2-days': {
+    'check-student-debts-every-day': {
         'task': 'management.tasks.check_student_debts',
-        'schedule': timedelta(days=2),
+        'schedule': timedelta(days=1),
     },
 }
 
