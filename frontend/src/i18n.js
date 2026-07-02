@@ -140,8 +140,10 @@ const translations = {
       no_students: "В этой группе пока нет студентов.",
       drop_confirm: "Вы уверены, что хотите исключить \"{name}\" из этой группы?",
       weekly_grid: "Еженедельная успеваемость и посещаемость",
+      monthly_grid: "Ежемесячная успеваемость и посещаемость",
       today: "Сегодня",
       absent: "Отсутствует",
+      present: "Присутствует",
       grade_placeholder: "- Оценка -",
       grade_5: "🤩 5 (Отлично)",
       grade_4: "🙂 4 (Хорошо)",
@@ -200,7 +202,9 @@ const translations = {
       finish_group_btn: "Завершить группу",
       finish_group_confirm: "Вы уверены, что хотите завершить эту группу? Все зачисленные студенты будут отмечены как завершившие обучение.",
       finish_group_success: "Группа успешно завершена.",
-      finish_group_debt_error: "Невозможно завершить группу: у следующих зачисленных студентов есть задолженность:\n{students}\n\nПожалуйста, закройте все долги перед завершением группы."
+      finish_group_debt_error: "Невозможно завершить группу: у следующих зачисленных студентов есть задолженность:\n{students}\n\nПожалуйста, закройте все долги перед завершением группы.",
+      enroll_free_label: "Зачислить как бесплатного студента",
+      status_free: "Бесплатно"
     },
     payments: {
       title: "Платежи",
@@ -514,8 +518,10 @@ const translations = {
       no_students: "Ushbu guruhda hozircha talabalar yo'q.",
       drop_confirm: "Haqiqatan ham \"{name}\"ni guruhdan chetlatmoqchimisiz?",
       weekly_grid: "Haftalik baholash va davomat",
+      monthly_grid: "Oylik baholash va davomat",
       today: "Bugun",
       absent: "Yo'q",
+      present: "Qatnashdi",
       grade_placeholder: "- Baho -",
       grade_5: "🤩 5 (A'lo)",
       grade_4: "🙂 4 (Yaxshi)",
@@ -574,7 +580,9 @@ const translations = {
       finish_group_btn: "Guruhni yakunlash",
       finish_group_confirm: "Haqiqatan ham ushbu guruhni yakunlamoqchimisiz? Guruhdagi barcha talabalar o'qishni tamomlagan deb belgilanadi.",
       finish_group_success: "Guruh muvaffaqiyatli yakunlandi.",
-      finish_group_debt_error: "Guruhni yakunlash imkonsiz: quyidagi faol talabalarda qarzdorlik mavjud:\n{students}\n\nGuruhni yakunlashdan avval qarzlarni yopish talab etiladi."
+      finish_group_debt_error: "Guruhni yakunlash imkonsiz: quyidagi faol talabalarda qarzdorlik mavjud:\n{students}\n\nGuruhni yakunlashdan avval qarzlarni yopish talab etiladi.",
+      enroll_free_label: "Tekin talaba sifatida a'zo qilish",
+      status_free: "Tekin"
     },
     payments: {
       title: "To'lovlar",

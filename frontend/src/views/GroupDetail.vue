@@ -132,14 +132,17 @@
                   </td>
                    <td v-if="userRole !== 'teacher'">
                     <div class="payment-status-cell">
-                      <span :class="['status-badge', enrolled.payment_status || 'debt']">
+                      <span v-if="enrolled.enrolled_free" class="status-badge free-badge">
+                        {{ $t('groupDetail.status_free') }}
+                      </span>
+                      <span v-else :class="['status-badge', enrolled.payment_status || 'debt']">
                         {{ $t('groupDetail.status_' + (enrolled.payment_status || 'debt')) }}
                       </span>
-                      <span v-if="(enrolled.payment_status || 'debt') === 'debt'" class="debt-amount">
+                      <span v-if="!enrolled.enrolled_free && (enrolled.payment_status || 'debt') === 'debt'" class="debt-amount">
                         {{ formatPrice(enrolled.debt_amount) }} UZS
                       </span>
                       <button
-                        v-if="(enrolled.payment_status || 'debt') === 'debt' && enrolled.status !== 'dropped'"
+                        v-if="!enrolled.enrolled_free && (enrolled.payment_status || 'debt') === 'debt' && enrolled.status !== 'dropped'"
                         @click="openPaymentModal(enrolled)"
                         class="btn-pay"
                         :title="$t('groupDetail.record_payment_title')"
@@ -281,6 +284,86 @@
             </table>
           </div>
         </div>
+
+        <!-- Monthly Attendance Grid (Admins and CEO only) -->
+        <div v-if="userRole === 'admin' || userRole === 'CEO' || userRole === 'superuser'" class="table-card" style="margin-top: 2rem;">
+          <div class="table-header-bar flex-header">
+            <h2 class="card-section-title">{{ $t('groupDetail.monthly_grid') }}</h2>
+            <div class="month-year-selectors">
+              <!-- Month Dropdown -->
+              <select :value="monthlyGridMonth" @change="monthlyGridMonth = parseInt($event.target.value)" class="form-input selector-dropdown">
+                <option v-for="m in 12" :key="m - 1" :value="m - 1">
+                  {{ getMonthName(m - 1) }}
+                </option>
+              </select>
+              <!-- Year Dropdown -->
+              <select :value="monthlyGridYear" @change="monthlyGridYear = parseInt($event.target.value)" class="form-input selector-dropdown">
+                <option v-for="y in availableYears" :key="y" :value="y">
+                  {{ y }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrapper monthly-grid-wrapper">
+            <table class="data-table grid-table monthly-grid-table">
+              <thead>
+                <tr>
+                  <th class="student-col-header">{{ $t('stats.student') }}</th>
+                  <th v-for="day in monthlyGridDays" :key="day.dayNum" :class="{ 'today-col-header': day.isToday, 'weekend-col-header': day.weekday === 'Sun' }" class="date-col-header monthly-date-header">
+                    <div class="day-header-info">
+                      <span class="day-date font-semibold">{{ day.dayNum }}</span>
+                      <span class="day-name text-muted" style="font-size: 0.7rem;">{{ formatWeekdayShort(day.weekday) }}</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="student in activeEnrolledStudents" :key="student.studentId" class="table-row">
+                  <td class="student-cell">
+                    <div class="student-cell-content">
+                      <div class="student-avatar-circle">{{ getInitials(student.full_name) }}</div>
+                      <div class="student-info-text">
+                        <span class="student-name font-semibold">{{ student.full_name }}</span>
+                        <span class="student-id font-mono text-muted">#{{ student.id }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td v-for="day in monthlyGridDays" :key="day.dayNum" :class="{ 'today-cell': day.isToday, 'non-class-day': !isClassDay(student.studentId, day.dateStr) }" class="grid-cell monthly-cell">
+                    <div class="readonly-cell-wrapper">
+                      <!-- Class Day -->
+                      <template v-if="isClassDay(student.studentId, day.dateStr)">
+                        <!-- Absence -->
+                        <span v-if="isAbsent(student.studentId, day.dateStr)" class="absence-dot" :title="$t('groupDetail.absent')">
+                          ❌
+                        </span>
+                        <!-- Grade -->
+                        <span 
+                          v-else-if="getGradeValue(student.studentId, day.dateStr)" 
+                          :class="['monthly-grade-badge', `grade-${getGradeValue(student.studentId, day.dateStr)}`]"
+                          :title="getGradeLabelReadOnly(getGradeValue(student.studentId, day.dateStr))"
+                        >
+                          {{ getGradeValue(student.studentId, day.dateStr) }}
+                        </span>
+                        <!-- Present -->
+                        <span v-else class="present-dot" :title="$t('groupDetail.present') || 'Present'">
+                          ✔
+                        </span>
+                      </template>
+                      <!-- Non-class Day -->
+                      <template v-else>
+                        <span class="empty-cell-dash">-</span>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="!activeEnrolledStudents.length">
+                  <td class="empty-state" :colspan="monthlyGridDays.length + 1">{{ $t('groupDetail.no_students') }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -343,6 +426,19 @@
             <div v-if="!availableStudents.length" class="empty-state" style="padding: 2rem 1rem;">
               {{ $t('groupDetail.no_students_available') }}
             </div>
+          </div>
+          
+          <!-- Free Enrollment toggle -->
+          <div style="margin-top: 1rem; text-align: left; display: flex; align-items: center; gap: 0.5rem;">
+            <label class="absence-checkbox-label" style="font-size: 0.9rem; color: #475569; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input
+                type="checkbox"
+                v-model="enrollFreeChecked"
+                class="checkbox-input"
+                style="width: 18px; height: 18px; cursor: pointer;"
+              />
+              {{ $t('groupDetail.enroll_free_label') }}
+            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -543,6 +639,7 @@ export default {
       enrollSearchQuery: '',
       selectedStudentIds: [],
       submittingEnrollment: false,
+      enrollFreeChecked: false,
 
       // Payment modal state
       showPaymentModal: false,
@@ -563,7 +660,11 @@ export default {
         phone1: '',
         phone2: '',
         description: ''
-      }
+      },
+
+      // Monthly grid state
+      monthlyGridMonth: new Date().getMonth(),
+      monthlyGridYear: new Date().getFullYear()
     }
   },
   computed: {
@@ -602,6 +703,7 @@ export default {
           debt_amount: e.debt_amount,
           date: e.date,
           studentId: e.student,
+          enrolled_free: e.enrolled_free,
           ...studentInfo
         }
       }).filter(item => item.full_name)
@@ -622,6 +724,33 @@ export default {
         list = list.filter(s => s.full_name && s.full_name.toLowerCase().includes(query))
       }
       return list
+    },
+    availableYears() {
+      const currentYear = new Date().getFullYear()
+      const years = []
+      for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+        years.push(y)
+      }
+      return years
+    },
+    monthlyGridDays() {
+      if (this.monthlyGridMonth === null || this.monthlyGridYear === null) return []
+      const days = []
+      const daysInMonth = new Date(this.monthlyGridYear, this.monthlyGridMonth + 1, 0).getDate()
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(this.monthlyGridYear, this.monthlyGridMonth, i)
+        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }) // Mon, Tue, etc.
+        const monthStr = String(this.monthlyGridMonth + 1).padStart(2, '0')
+        const dayStr = String(i).padStart(2, '0')
+        const dateStr = `${this.monthlyGridYear}-${monthStr}-${dayStr}`
+        days.push({
+          dayNum: i,
+          weekday,
+          dateStr,
+          isToday: dateStr === this.todayStr
+        })
+      }
+      return days
     }
   },
   created() {
@@ -695,6 +824,14 @@ export default {
         this.enrollments = enrollmentsRes.data
         this.grades = gradesRes.data
         this.absences = absencesRes.data
+
+        // Set default month and year of the monthly grid to the group's start date on initial load
+        if (this.group && this.group.started_at && this.hasInitializedMonthlyGrid === undefined) {
+          const startDate = new Date(this.group.started_at)
+          this.monthlyGridMonth = startDate.getMonth()
+          this.monthlyGridYear = startDate.getFullYear()
+          this.hasInitializedMonthlyGrid = true
+        }
       } catch (err) {
         console.error('Error fetching group details:', err)
         this.error = this.$t('stats.api_error')
@@ -846,6 +983,7 @@ export default {
     openEnrollModal() {
       this.selectedStudentIds = []
       this.enrollSearchQuery = ''
+      this.enrollFreeChecked = false
       this.showEnrollModal = true
     },
     closeEnrollModal() {
@@ -860,7 +998,8 @@ export default {
             student: studentId,
             group: this.group.id,
             status: 'enrolled',
-            payment_status: 'debt'
+            payment_status: this.enrollFreeChecked ? 'paid' : 'debt',
+            enrolled_free: this.enrollFreeChecked
           })
         })
 
@@ -1054,6 +1193,44 @@ export default {
     getInitials(name) {
       if (!name) return ''
       return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    },
+    getMonthName(monthIndex) {
+      const date = new Date(this.monthlyGridYear || new Date().getFullYear(), monthIndex, 1)
+      const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+      return date.toLocaleDateString(locale, { month: 'long' })
+    },
+    formatWeekdayShort(weekdayShort) {
+      const key = weekdayShort.toLowerCase()
+      if (key === 'sun') {
+        return this.$i18n.locale === 'uz' ? 'Yak' : 'Вс'
+      }
+      return this.$t('timetable.days.' + key)
+    },
+    isClassDay(studentId, dateStr) {
+      if (this.isAbsent(studentId, dateStr) || this.getGradeValue(studentId, dateStr)) {
+        return true
+      }
+      if (!this.group) return false
+      if (this.group.started_at && dateStr < this.group.started_at) {
+        return false
+      }
+      if (dateStr > this.todayStr) {
+        return false
+      }
+      const d = new Date(dateStr)
+      const dayOfWeek = d.getDay()
+      const daysAt = this.group.group_days_at || 'Mon-Wed-Fri'
+      if (daysAt === 'Mon-Wed-Fri') {
+        return [1, 3, 5].includes(dayOfWeek)
+      } else if (daysAt === 'Tue-Thur-Sat') {
+        return [2, 4, 6].includes(dayOfWeek)
+      } else if (daysAt === 'Everyday') {
+        return dayOfWeek >= 1 && dayOfWeek <= 6
+      }
+      return false
+    },
+    handleMonthlyGridDateChange() {
+      // local reaction if needed, but computed properties handle re-renders automatically
     }
   }
 }
@@ -1262,6 +1439,12 @@ export default {
   color: #991b1b;
 }
 
+.status-badge.free-badge {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
 .payment-status-cell {
   display: flex;
   align-items: center;
@@ -1434,12 +1617,12 @@ export default {
 }
 
 .student-col-header {
-  min-width: 220px;
   position: sticky;
   left: 0;
   z-index: 3;
   background-color: #f8fafc !important;
   box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
 }
 
 .student-header-info {
@@ -1480,8 +1663,8 @@ export default {
   left: 0;
   z-index: 2;
   background-color: white;
-  min-width: 220px;
   box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
 }
 
 .table-row:hover .student-cell {
@@ -1494,6 +1677,23 @@ export default {
   gap: 0.75rem;
   padding: 0.35rem 0.5rem;
   text-align: left;
+  white-space: nowrap;
+}
+
+/* Media Query for mobile screen sizes (small phone views) */
+@media (max-width: 768px) {
+  .student-col-header {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+  .student-cell {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+  .student-cell-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
 .student-info-text {
@@ -1615,5 +1815,81 @@ export default {
 .empty-cell-dash {
   color: #cbd5e1;
   font-weight: bold;
+}
+
+/* Monthly grid custom styling */
+.monthly-grid-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.monthly-grid-table {
+  min-width: 1200px;
+}
+
+.monthly-cell {
+  padding: 0.5rem !important;
+  text-align: center;
+  vertical-align: middle;
+  min-width: 45px;
+}
+
+.monthly-date-header {
+  min-width: 45px;
+  padding: 0.5rem !important;
+}
+
+.monthly-grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.present-dot {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.absence-dot {
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.month-year-selectors {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.selector-dropdown {
+  padding: 0.35rem 2rem 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+}
+
+.selector-dropdown:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.non-class-day {
+  background-color: #f8fafc !important;
+  opacity: 0.6;
+}
+
+.weekend-col-header {
+  background-color: #fee2e2 !important;
 }
 </style>

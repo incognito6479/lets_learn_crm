@@ -103,6 +103,7 @@ class Enrollment(BaseModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt')
     debt_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    enrolled_free = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('student', 'group')
@@ -112,31 +113,41 @@ class Enrollment(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.debt_amount = self.group.price
+            self.debt_amount = 0.00 if self.enrolled_free else self.group.price
+            if self.enrolled_free:
+                self.payment_status = 'paid'
         super().save(*args, **kwargs)
 
     def check_debt(self):
-        today = timezone.localdate()
-        start_date = self.date
-        if start_date > today:
+        if self.enrolled_free:
+            expected_amount = 0
+            total_paid = 0
             months_billed = 0
-        else:
-            months_elapsed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
-            if today.day < start_date.day:
-                months_elapsed -= 1
-            months_billed = max(0, months_elapsed) + 1
-        group_price = self.group.price
-        expected_amount = months_billed * group_price
-        total_paid = Payment.objects.filter(
-            student=self.student,
-            group=self.group,
-            is_active=True,
-            status='accepted'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        debt = expected_amount - total_paid
-        if debt < 0:
             debt = 0
-        new_status = 'debt' if debt > 0 else 'paid'
+            new_status = 'paid'
+        else:
+            today = timezone.localdate()
+            start_date = self.date
+            if start_date > today:
+                months_billed = 0
+            else:
+                months_elapsed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+                if today.day < start_date.day:
+                    months_elapsed -= 1
+                months_billed = max(0, months_elapsed) + 1
+            group_price = self.group.price
+            expected_amount = months_billed * group_price
+            total_paid = Payment.objects.filter(
+                student=self.student,
+                group=self.group,
+                is_active=True,
+                status='accepted'
+            ).aggregate(total=Sum('amount'))['total'] or 0
+            debt = expected_amount - total_paid
+            if debt < 0:
+                debt = 0
+            new_status = 'debt' if debt > 0 else 'paid'
+        
         changed = False
         if self.payment_status != new_status or self.debt_amount != debt:
             self.payment_status = new_status

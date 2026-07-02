@@ -204,7 +204,7 @@ export default {
       if (!this.enrollments.length || !this.students.length || !this.groups.length || !this.branches.length) return []
       
       return this.enrollments
-        .filter(e => e.status === 'enrolled' && e.payment_status === 'debt')
+        .filter(e => e.status === 'enrolled' && e.payment_status === 'debt' && !e.enrolled_free)
         .map(e => {
           const student = this.students.find(s => s.id === e.student) || {}
           const group = this.groups.find(g => g.id === e.group) || {}
