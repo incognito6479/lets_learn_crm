@@ -41,7 +41,14 @@ const translations = {
       rooms: "Комнаты",
       branches: "Филиалы",
       courses: "Курсы",
-      signOut: "Выйти"
+      signOut: "Выйти",
+      changePassword: "Смена пароля",
+      newPassword: "Новый пароль",
+      confirmPassword: "Подтвердите пароль",
+      passwordMismatch: "Пароли не совпадают",
+      passwordTooShort: "Пароль должен состоять минимум из 6 символов",
+      passwordChangeSuccess: "Пароль успешно изменен!",
+      passwordChangeError: "Не удалось изменить пароль. Пожалуйста, попробуйте еще раз."
     },
     login: {
       title: "Вход в систему",
@@ -419,7 +426,14 @@ const translations = {
       rooms: "Xonalar",
       branches: "Filiallar",
       courses: "Kurslar",
-      signOut: "Chiqish"
+      signOut: "Chiqish",
+      changePassword: "Parolni o'zgartirish",
+      newPassword: "Yangi parol",
+      confirmPassword: "Parolni tasdiqlang",
+      passwordMismatch: "Parollar mos kelmadi",
+      passwordTooShort: "Parol kamida 6 ta belgidan iborat bo'lishi kerak",
+      passwordChangeSuccess: "Parol muvaffaqiyatli o'zgartirildi!",
+      passwordChangeError: "Parolni o'zgartirib bo'lmadi. Iltimos, qaytadan urinib ko'ring."
     },
     login: {
       title: "Tizimga kirish",

@@ -194,14 +194,22 @@ export default {
   },
   computed: {
     filteredStudents() {
+      let list = [...this.students]
+      
+      // Sort newly added (highest ID) first
+      list.sort((a, b) => b.id - a.id)
+      
       const query = this.searchQuery.toLowerCase().trim()
-      if (!query) return this.students
-      return this.students.filter(s => {
-        const nameMatch = s.full_name && s.full_name.toLowerCase().includes(query)
-        const phone1Match = s.phone1 && s.phone1.toLowerCase().includes(query)
-        const phone2Match = s.phone2 && s.phone2.toLowerCase().includes(query)
-        return nameMatch || phone1Match || phone2Match
-      })
+      if (query) {
+        list = list.filter(s => {
+          const nameMatch = s.full_name && s.full_name.toLowerCase().includes(query)
+          const phone1Match = s.phone1 && s.phone1.toLowerCase().includes(query)
+          const phone2Match = s.phone2 && s.phone2.toLowerCase().includes(query)
+          return nameMatch || phone1Match || phone2Match
+        })
+      }
+      
+      return list.slice(0, 20)
     }
   },
   mounted() {

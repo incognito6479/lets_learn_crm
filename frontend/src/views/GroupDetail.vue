@@ -288,7 +288,12 @@
         <!-- Monthly Attendance Grid (Admins and CEO only) -->
         <div v-if="userRole === 'admin' || userRole === 'CEO' || userRole === 'superuser'" class="table-card" style="margin-top: 2rem;">
           <div class="table-header-bar flex-header">
-            <h2 class="card-section-title">{{ $t('groupDetail.monthly_grid') }}</h2>
+            <h2 class="card-section-title">
+              {{ $t('groupDetail.monthly_grid') }}
+              <span class="month-info-label" style="font-size: 0.95rem; color: #64748b; font-weight: 500; margin-left: 0.75rem; text-transform: capitalize; vertical-align: middle;">
+                ({{ getMonthName(monthlyGridMonth) }} {{ monthlyGridYear }})
+              </span>
+            </h2>
             <div class="month-year-selectors">
               <!-- Month Dropdown -->
               <select :value="monthlyGridMonth" @change="monthlyGridMonth = parseInt($event.target.value)" class="form-input selector-dropdown">

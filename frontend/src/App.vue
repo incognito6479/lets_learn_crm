@@ -90,18 +90,28 @@
             >RU</button>
           </div>
 
-          <div class="user-profile" v-if="!isMobile">
-            <span class="avatar">{{ userInitials }}</span>
-            <span class="username">{{ username }}</span>
+          <!-- User Profile Dropdown -->
+          <div class="user-dropdown-container" v-if="isLoggedIn">
+            <button @click.stop="toggleUserDropdown" class="user-profile-trigger">
+              <span class="avatar">{{ userInitials }}</span>
+              <span class="username" v-if="!isMobile">{{ username }}</span>
+              <span class="chevron">▼</span>
+            </button>
+            <div v-if="isUserDropdownOpen" class="dropdown-menu">
+              <button @click="triggerChangePassword" class="dropdown-link">
+                <span class="dropdown-link-icon">🔑</span>
+                <span>{{ $t('nav.changePassword') }}</span>
+              </button>
+              <button @click="logout" class="dropdown-link logout-link">
+                <svg class="logout-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin-right: 0.5rem;">
+                  <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ $t('nav.signOut') }}</span>
+              </button>
+            </div>
           </div>
-          <button @click="logout" class="logout-btn">
-            <svg class="logout-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span v-if="!isMobile">{{ $t('nav.signOut') }}</span>
-          </button>
         </div>
       </header>
 
@@ -109,6 +119,60 @@
       <main class="content-area">
         <router-view />
       </main>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div v-if="showChangePasswordModal" class="modal-backdrop-cp" @click.self="closeChangePasswordModal">
+      <div class="modal-content-cp">
+        <div class="modal-header-cp">
+          <h2 class="modal-title-cp">{{ $t('nav.changePassword') }}</h2>
+          <button @click="closeChangePasswordModal" class="modal-close-cp">
+            <svg class="icon-svg-cp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="submitChangePassword">
+          <div class="modal-body-cp">
+            <div v-if="changePasswordError" class="error-banner-cp">
+              {{ changePasswordError }}
+            </div>
+            
+            <div class="form-group-cp">
+              <label for="newPassword" class="form-label-cp">{{ $t('nav.newPassword') }}</label>
+              <input
+                type="password"
+                id="newPassword"
+                v-model="changePasswordForm.newPassword"
+                required
+                class="form-input-cp"
+              />
+            </div>
+            
+            <div class="form-group-cp">
+              <label for="confirmPassword" class="form-label-cp">{{ $t('nav.confirmPassword') }}</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                v-model="changePasswordForm.confirmPassword"
+                required
+                class="form-input-cp"
+              />
+            </div>
+          </div>
+          <div class="modal-footer-cp">
+            <button type="button" @click="closeChangePasswordModal" class="btn-cp btn-secondary-cp">{{ $t('common.cancel') }}</button>
+            <button
+              type="submit"
+              class="btn-cp btn-primary-cp"
+              :disabled="submittingChangePassword || !changePasswordForm.newPassword || !changePasswordForm.confirmPassword"
+            >
+              {{ submittingChangePassword ? $t('common.saving') || 'Saving...' : $t('common.save') || 'Save' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -123,7 +187,15 @@ export default {
       username: '',
       userRole: '',
       isSidebarCollapsed: false,
-      isMobile: false
+      isMobile: false,
+      isUserDropdownOpen: false,
+      showChangePasswordModal: false,
+      changePasswordForm: {
+        newPassword: '',
+        confirmPassword: ''
+      },
+      submittingChangePassword: false,
+      changePasswordError: null
     }
   },
   computed: {
@@ -165,12 +237,16 @@ export default {
     } else {
       this.isSidebarCollapsed = this.isMobile
     }
+
+    document.addEventListener('click', this.handleDocumentClick)
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize)
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
+    document.removeEventListener('click', this.handleDocumentClick)
   },
   methods: {
     updateUser() {
@@ -204,6 +280,61 @@ export default {
       this.isMobile = window.innerWidth <= 768
       if (this.isMobile) {
         this.isSidebarCollapsed = true
+      }
+    },
+    toggleUserDropdown(event) {
+      this.isUserDropdownOpen = !this.isUserDropdownOpen
+    },
+    closeUserDropdown() {
+      this.isUserDropdownOpen = false
+    },
+    handleDocumentClick(event) {
+      if (this.isUserDropdownOpen) {
+        this.closeUserDropdown()
+      }
+    },
+    triggerChangePassword() {
+      this.closeUserDropdown()
+      this.changePasswordForm.newPassword = ''
+      this.changePasswordForm.confirmPassword = ''
+      this.changePasswordError = null
+      this.showChangePasswordModal = true
+    },
+    closeChangePasswordModal() {
+      this.showChangePasswordModal = false
+    },
+    async submitChangePassword() {
+      if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {
+        this.changePasswordError = this.$t('nav.passwordMismatch')
+        return
+      }
+      if (this.changePasswordForm.newPassword.length < 6) {
+        this.changePasswordError = this.$t('nav.passwordTooShort')
+        return
+      }
+      
+      this.submittingChangePassword = true
+      this.changePasswordError = null
+      const userId = localStorage.getItem('user_id')
+      try {
+        await axios.patch(`http://localhost:8000/api/users/${userId}/`, {
+          password: this.changePasswordForm.newPassword
+        })
+        
+        // Update credentials in localStorage to maintain basic auth session
+        const username = localStorage.getItem('username')
+        const credentials = `${username}:${this.changePasswordForm.newPassword}`
+        const newToken = btoa(credentials)
+        localStorage.setItem('auth_token', newToken)
+        axios.defaults.headers.common['Authorization'] = 'Basic ' + newToken
+        
+        this.closeChangePasswordModal()
+        alert(this.$t('nav.passwordChangeSuccess'))
+      } catch (err) {
+        console.error('Error changing password:', err)
+        this.changePasswordError = this.$t('nav.passwordChangeError')
+      } finally {
+        this.submittingChangePassword = false
       }
     }
   }
@@ -524,5 +655,265 @@ body {
   .logout-btn span {
     display: none;
   }
+}
+
+/* User Dropdown styles */
+.user-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #334155;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+}
+
+.user-profile-trigger:hover {
+  background-color: #f1f5f9;
+}
+
+.user-profile-trigger .chevron {
+  font-size: 0.7rem;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-width: 180px;
+  z-index: 1000;
+  padding: 0.5rem 0;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  color: #334155;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.dropdown-link:hover {
+  background-color: #f8fafc;
+  color: #6366f1;
+}
+
+.dropdown-link-icon {
+  font-size: 1rem;
+}
+
+.logout-link {
+  border-top: 1px solid #f1f5f9;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  color: #ef4444;
+}
+
+.logout-link:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Modal styling for Change Password */
+.modal-backdrop-cp {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeInModal 0.2s ease-out;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content-cp {
+  background-color: white;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: scaleUpModal 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scaleUpModal {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header-cp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-title-cp {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.modal-close-cp {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-cp:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.icon-svg-cp {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-body-cp {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.error-banner-cp {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.form-group-cp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.form-label-cp {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.form-input-cp {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-input-cp:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.modal-footer-cp {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+}
+
+.btn-cp {
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-secondary-cp {
+  background-color: white;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.btn-secondary-cp:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.btn-primary-cp {
+  background-color: #6366f1;
+  color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary-cp:hover {
+  background-color: #4f46e5;
+}
+
+.btn-primary-cp:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

@@ -211,7 +211,10 @@ export default {
   },
   computed: {
     filteredPayments() {
-      let list = this.payments
+      let list = [...this.payments]
+      
+      // Sort with last changed/newest rows (highest ID) first
+      list.sort((a, b) => b.id - a.id)
       
       if (this.selectedGroup) {
         list = list.filter(p => p.group === this.selectedGroup)
@@ -224,7 +227,7 @@ export default {
         })
       }
       
-      return list
+      return list.slice(0, 20)
     },
     totalPayments() {
       const sum = this.filteredPayments
