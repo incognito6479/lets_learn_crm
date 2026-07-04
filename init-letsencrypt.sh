@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ensure script runs from the target VPS deployment directory
+cd /root/lets_learn_crm || exit 1
+
 # Configuration
 domains=(lets-learn.uz www.lets-learn.uz)
 rsa_key_size=4096
