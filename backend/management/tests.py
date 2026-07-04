@@ -336,3 +336,21 @@ class APIOperationsTest(APITestCase):
         }, format='json')
         self.assertEqual(response_refresh.status_code, 200)
         self.assertIn('access', response_refresh.data)
+
+    def test_teacher_blocked_from_payments(self):
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/payments/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_cashier_blocked_from_grading(self):
+        cashier = User.objects.create(
+            username="cashier_test",
+            role="cashier",
+            branch=self.branch
+        )
+        cashier.set_password("cashierpass")
+        cashier.save()
+        
+        self.client.force_authenticate(user=cashier)
+        response = self.client.get('/api/grades/')
+        self.assertEqual(response.status_code, 403)

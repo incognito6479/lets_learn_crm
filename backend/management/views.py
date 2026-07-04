@@ -20,13 +20,59 @@ class SoftDeleteModelViewSet(viewsets.ModelViewSet):
         instance.is_active = False
         instance.save()
 
+
+class IsAdminOrCEOOrSuperuserOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ['admin', 'CEO', 'superuser'] or request.user.is_superuser
+
+class IsAdminOrCEOOrSuperuserOrSelf(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ['admin', 'CEO', 'superuser'] or request.user.is_superuser
+
+    def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.id == obj.id:
+            return True
+        return request.user.role in ['admin', 'CEO', 'superuser'] or request.user.is_superuser
+
+class IsCashierOrAdminOrCEOOrSuperuserOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ['admin', 'CEO', 'superuser', 'cashier'] or request.user.is_superuser
+
+class IsCashierOrAdminOrCEOOrSuperuser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.role in ['admin', 'CEO', 'superuser', 'cashier'] or request.user.is_superuser
+
+class IsTeacherOrAdminOrCEOOrSuperuser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.role in ['admin', 'CEO', 'superuser', 'teacher'] or request.user.is_superuser
+
 class BranchViewSet(SoftDeleteModelViewSet):
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
+    permission_classes = [IsAdminOrCEOOrSuperuserOrReadOnly]
 
 class UserViewSet(SoftDeleteModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAdminOrCEOOrSuperuserOrSelf]
 
     def get_queryset(self):
         return self.queryset.all()
@@ -34,18 +80,22 @@ class UserViewSet(SoftDeleteModelViewSet):
 class StudentViewSet(SoftDeleteModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    permission_classes = [IsCashierOrAdminOrCEOOrSuperuserOrReadOnly]
 
 class RoomViewSet(SoftDeleteModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
+    permission_classes = [IsAdminOrCEOOrSuperuserOrReadOnly]
 
 class CourseViewSet(SoftDeleteModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    permission_classes = [IsAdminOrCEOOrSuperuserOrReadOnly]
 
 class GroupViewSet(SoftDeleteModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    permission_classes = [IsAdminOrCEOOrSuperuserOrReadOnly]
 
     def perform_update(self, serializer):
         instance = self.get_object()
@@ -68,6 +118,7 @@ class GroupViewSet(SoftDeleteModelViewSet):
 class EnrollmentViewSet(SoftDeleteModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
+    permission_classes = [IsCashierOrAdminOrCEOOrSuperuserOrReadOnly]
 
     def perform_destroy(self, instance):
         instance.status = 'dropped'
@@ -76,6 +127,7 @@ class EnrollmentViewSet(SoftDeleteModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
+    permission_classes = [IsCashierOrAdminOrCEOOrSuperuser]
 
     def perform_create(self, serializer):
         payment = serializer.save()
@@ -95,10 +147,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class GradeViewSet(SoftDeleteModelViewSet):
     queryset = Grade.objects.all()
     serializer_class = GradeSerializer
+    permission_classes = [IsTeacherOrAdminOrCEOOrSuperuser]
 
 class AbsenceViewSet(SoftDeleteModelViewSet):
     queryset = Absence.objects.all()
     serializer_class = AbsenceSerializer
+    permission_classes = [IsTeacherOrAdminOrCEOOrSuperuser]
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
