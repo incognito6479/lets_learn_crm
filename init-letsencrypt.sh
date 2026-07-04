@@ -35,14 +35,14 @@ fi
 
 echo "### Creating dummy certificate for ${domains[0]} ..."
 path="/etc/letsencrypt/live/${domains[0]}"
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
   "sh -c 'mkdir -p /etc/letsencrypt/live/${domains[0]} && openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout $path/privkey.pem -out $path/fullchain.pem -subj \"/CN=localhost\"'" certbot
 
 echo "### Starting nginx ..."
-docker-compose -f docker-compose.prod.yml up --force-recreate -d nginx
+docker compose -f docker-compose.prod.yml up --force-recreate -d nginx
 
 echo "### Deleting dummy certificate for ${domains[0]} ..."
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
   "rm -Rf /etc/letsencrypt/live/${domains[0]} && rm -Rf /etc/letsencrypt/archive/${domains[0]} && rm -Rf /etc/letsencrypt/renewal/${domains[0]}.conf" certbot
 
 echo "### Requesting Let's Encrypt certificate for ${domains[0]} ..."
@@ -64,7 +64,7 @@ if [ $staging -ne 0 ]; then
   staging_arg="--staging"
 fi
 
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint \
   "certbot certonly --webroot -w /var/www/certbot \
     $staging_arg \
     $email_arg \
@@ -74,5 +74,5 @@ docker-compose -f docker-compose.prod.yml run --rm --entrypoint \
     --non-interactive" certbot
 
 echo "### Reloading nginx ..."
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 echo "### Certificates generated successfully!"
