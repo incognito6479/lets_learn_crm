@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Configuration
-domains=(yourdomain.com www.yourdomain.com)
+domains=(lets-learn.uz www.lets-learn.uz)
 rsa_key_size=4096
 data_path="./data/certbot"
-email="youremail@example.com" # Adding a valid email is strongly recommended
+email="incognitobk72@gmail.com" # Adding a valid email is strongly recommended
 staging=0 # Set to 1 if you're testing to avoid hitting Let's Encrypt rate limits
 
 # Read custom environment values from .env if present
