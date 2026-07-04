@@ -246,8 +246,8 @@ export default {
 
       try {
         const [usersRes, branchesRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/users/`),
-          axios.get(`http://localhost:8000/api/branches/`)
+          axios.get(`/api/users/`),
+          axios.get(`/api/branches/`)
         ])
         this.branches = branchesRes.data
         // Filter users who are teachers
@@ -294,9 +294,9 @@ export default {
           if (!editPayload.password) {
             delete editPayload.password
           }
-          await axios.put(`http://localhost:8000/api/users/${this.form.id}/`, editPayload)
+          await axios.put(`/api/users/${this.form.id}/`, editPayload)
         } else {
-          await axios.post('http://localhost:8000/api/users/', this.form)
+          await axios.post('/api/users/', this.form)
         }
         this.submitting = false
         this.closeModal()
@@ -313,7 +313,7 @@ export default {
       }
 
       try {
-        await axios.delete(`http://localhost:8000/api/users/${teacher.id}/`)
+        await axios.delete(`/api/users/${teacher.id}/`)
         this.fetchData()
       } catch (err) {
         console.error('Error deleting teacher:', err)

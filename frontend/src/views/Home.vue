@@ -150,11 +150,11 @@ export default {
 
       try {
         const [studentsRes, usersRes, enrollmentsRes, groupsRes, paymentsRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/enrollments/'),
-          axios.get('http://localhost:8000/api/groups/'),
-          axios.get('http://localhost:8000/api/payments/')
+          axios.get('/api/students/'),
+          axios.get('/api/users/'),
+          axios.get('/api/enrollments/'),
+          axios.get('/api/groups/'),
+          axios.get('/api/payments/')
         ])
 
         this.studentCount = studentsRes.data.length

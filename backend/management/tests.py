@@ -306,3 +306,33 @@ class APIOperationsTest(APITestCase):
         }, format='json')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Absence.objects.filter(student=self.student, group=group).count(), 1)
+
+    def test_jwt_obtain_and_refresh_tokens(self):
+        user = User.objects.create(
+            username="jwtuser",
+            role="admin",
+            branch=self.branch
+        )
+        user.set_password("jwtpassword")
+        user.save()
+
+        self.client.force_authenticate(user=None)
+
+        # 1. Obtain token pair
+        response = self.client.post('/api/token/', {
+            'username': 'jwtuser',
+            'password': 'jwtpassword'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['username'], 'jwtuser')
+        self.assertEqual(response.data['role'], 'admin')
+
+        # 2. Refresh access token
+        refresh_token = response.data['refresh']
+        response_refresh = self.client.post('/api/token/refresh/', {
+            'refresh': refresh_token
+        }, format='json')
+        self.assertEqual(response_refresh.status_code, 200)
+        self.assertIn('access', response_refresh.data)

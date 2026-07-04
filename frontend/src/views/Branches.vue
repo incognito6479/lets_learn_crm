@@ -154,7 +154,7 @@ export default {
       this.error = null
 
       try {
-        const response = await axios.get('http://localhost:8000/api/branches/')
+        const response = await axios.get('/api/branches/')
         this.branches = response.data
         this.loading = false
       } catch (err) {
@@ -181,9 +181,9 @@ export default {
 
       try {
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/branches/${this.form.id}/`, this.form)
+          await axios.put(`/api/branches/${this.form.id}/`, this.form)
         } else {
-          await axios.post('http://localhost:8000/api/branches/', this.form)
+          await axios.post('/api/branches/', this.form)
         }
         this.submitting = false
         this.closeModal()
@@ -200,7 +200,7 @@ export default {
       }
 
       try {
-        await axios.delete(`http://localhost:8000/api/branches/${branch.id}/`)
+        await axios.delete(`/api/branches/${branch.id}/`)
         this.fetchBranches()
       } catch (err) {
         console.error('Error deleting branch:', err)

@@ -257,10 +257,10 @@ export default {
       this.error = null
       try {
         const [enrollmentsRes, studentsRes, groupsRes, branchesRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/enrollments/'),
-          axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/groups/'),
-          axios.get('http://localhost:8000/api/branches/')
+          axios.get('/api/enrollments/'),
+          axios.get('/api/students/'),
+          axios.get('/api/groups/'),
+          axios.get('/api/branches/')
         ])
         
         this.enrollments = enrollmentsRes.data
@@ -343,7 +343,7 @@ export default {
         const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
         const amountVal = parseFloat(rawAmount || 0)
         
-        await axios.post('http://localhost:8000/api/payments/', {
+        await axios.post('/api/payments/', {
           group: this.paymentEnrollment.groupId,
           student: this.paymentEnrollment.studentId,
           amount: amountVal,

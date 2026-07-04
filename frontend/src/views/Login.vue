@@ -140,44 +140,30 @@ export default {
       this.loading = true
       this.error = null
 
-      // Create Basic Auth Token: base64(username:password)
-      const credentials = `${this.username}:${this.password}`
-      const token = btoa(credentials)
-
       try {
-        // Test auth credentials by requesting list of branches or users
-        const response = await axios.get('http://localhost:8000/api/branches/', {
-          headers: {
-            'Authorization': `Basic ${token}`
-          }
+        const response = await axios.post('/api/token/', {
+          username: this.username,
+          password: this.password
         })
 
-        // Success: set temporary auth header to fetch user info
-        axios.defaults.headers.common['Authorization'] = 'Basic ' + token
+        const { access, refresh, role, user_id, username } = response.data
 
-        // Fetch users to find the role and ID of the logged-in user
-        const usersResponse = await axios.get('http://localhost:8000/api/users/')
-        const currentUser = usersResponse.data.find(
-          u => u.username.toLowerCase() === this.username.toLowerCase()
-        )
-        const role = currentUser ? currentUser.role : 'admin'
-        const userId = currentUser ? currentUser.id : null
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + access
 
-        // Store auth credentials and user metadata in localStorage
-        localStorage.setItem('auth_token', token)
-        localStorage.setItem('username', this.username)
+        localStorage.setItem('auth_token', access)
+        localStorage.setItem('refresh_token', refresh)
+        localStorage.setItem('username', username)
         localStorage.setItem('user_role', role)
-        if (userId) {
-          localStorage.setItem('user_id', String(userId))
+        if (user_id) {
+          localStorage.setItem('user_id', String(user_id))
         }
 
         this.loading = false
         this.$router.push('/')
       } catch (err) {
-        // Clear any half-set auth headers on login failure
         delete axios.defaults.headers.common['Authorization']
         this.loading = false
-        if (err.response && err.response.status === 401) {
+        if (err.response && (err.response.status === 401 || err.response.status === 400)) {
           this.error = this.$t('login.error')
         } else if (!err.response) {
           this.error = this.$t('login.server_error')

@@ -245,9 +245,9 @@ export default {
       this.error = null
       try {
         const [paymentsRes, studentsRes, groupsRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/payments/'),
-          axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/groups/')
+          axios.get('/api/payments/'),
+          axios.get('/api/students/'),
+          axios.get('/api/groups/')
         ])
         this.payments = paymentsRes.data
         this.students = studentsRes.data
@@ -311,7 +311,7 @@ export default {
     async confirmCancelPayment() {
       this.submittingCancel = true
       try {
-        await axios.patch(`http://localhost:8000/api/payments/${this.selectedPaymentForCancel.id}/`, {
+        await axios.patch(`/api/payments/${this.selectedPaymentForCancel.id}/`, {
           is_active: false,
           status: 'canceled'
         })

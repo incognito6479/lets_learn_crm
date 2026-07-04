@@ -3,8 +3,10 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     BranchViewSet, UserViewSet, StudentViewSet, 
     RoomViewSet, CourseViewSet, GroupViewSet, 
-    EnrollmentViewSet, PaymentViewSet, GradeViewSet, AbsenceViewSet
+    EnrollmentViewSet, PaymentViewSet, GradeViewSet, AbsenceViewSet,
+    CustomTokenObtainPairView
 )
+from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
 router.register(r'branches', BranchViewSet)
@@ -20,4 +22,6 @@ router.register(r'absences', AbsenceViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

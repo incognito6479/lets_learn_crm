@@ -306,11 +306,11 @@ export default {
       this.error = null
       try {
         const [groupsRes, usersRes, roomsRes, branchesRes, coursesRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/groups/'),
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/rooms/'),
-          axios.get('http://localhost:8000/api/branches/'),
-          axios.get('http://localhost:8000/api/courses/')
+          axios.get('/api/groups/'),
+          axios.get('/api/users/'),
+          axios.get('/api/rooms/'),
+          axios.get('/api/branches/'),
+          axios.get('/api/courses/')
         ])
 
         let groupsData = groupsRes.data

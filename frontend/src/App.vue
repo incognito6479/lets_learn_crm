@@ -223,8 +223,54 @@ export default {
     // Inject authorization header if active session exists
     const token = localStorage.getItem('auth_token')
     if (token) {
-      axios.defaults.headers.common['Authorization'] = 'Basic ' + token
+      axios.defaults.headers.common['Authorization'] = 'Bearer ' + token
     }
+
+    // Set up Axios interceptors for JWT token attachment and automatic refreshing
+    axios.interceptors.request.use(
+      (config) => {
+        const activeToken = localStorage.getItem('auth_token')
+        if (activeToken) {
+          config.headers['Authorization'] = 'Bearer ' + activeToken
+        }
+        return config
+      },
+      (error) => Promise.reject(error)
+    )
+
+    axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config
+        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+          if (originalRequest.url.includes('/api/token/')) {
+            return Promise.reject(error)
+          }
+          originalRequest._retry = true
+          const refreshToken = localStorage.getItem('refresh_token')
+          if (refreshToken) {
+            try {
+              const res = await axios.post('/api/token/refresh/', {
+                refresh: refreshToken
+              })
+              const newAccessToken = res.data.access
+              localStorage.setItem('auth_token', newAccessToken)
+              axios.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken
+              originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken
+              return axios(originalRequest)
+            } catch (refreshErr) {
+              console.error('Refresh token expired or invalid:', refreshErr)
+              this.logout()
+              return Promise.reject(refreshErr)
+            }
+          } else {
+            this.logout()
+          }
+        }
+        return Promise.reject(error)
+      }
+    )
+
     this.updateUser()
     
     // Initialize resize check and collapsed state
@@ -256,8 +302,10 @@ export default {
     logout() {
       // Clear storage
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
       localStorage.removeItem('username')
       localStorage.removeItem('user_role')
+      localStorage.removeItem('user_id')
       
       // Clear axios defaults
       delete axios.defaults.headers.common['Authorization']
@@ -317,16 +365,21 @@ export default {
       this.changePasswordError = null
       const userId = localStorage.getItem('user_id')
       try {
-        await axios.patch(`http://localhost:8000/api/users/${userId}/`, {
+        await axios.patch(`/api/users/${userId}/`, {
           password: this.changePasswordForm.newPassword
         })
         
-        // Update credentials in localStorage to maintain basic auth session
+        // Relogin programmatically with the new password to update tokens
         const username = localStorage.getItem('username')
-        const credentials = `${username}:${this.changePasswordForm.newPassword}`
-        const newToken = btoa(credentials)
-        localStorage.setItem('auth_token', newToken)
-        axios.defaults.headers.common['Authorization'] = 'Basic ' + newToken
+        const tokenRes = await axios.post('/api/token/', {
+          username: username,
+          password: this.changePasswordForm.newPassword
+        })
+        
+        const { access, refresh } = tokenRes.data
+        localStorage.setItem('auth_token', access)
+        localStorage.setItem('refresh_token', refresh)
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + access
         
         this.closeChangePasswordModal()
         alert(this.$t('nav.passwordChangeSuccess'))

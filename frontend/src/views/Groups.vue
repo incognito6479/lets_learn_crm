@@ -367,11 +367,11 @@ export default {
       this.error = null
       try {
         const [groupsRes, coursesRes, usersRes, roomsRes, branchesRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/groups/'),
-          axios.get('http://localhost:8000/api/courses/'),
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/rooms/'),
-          axios.get('http://localhost:8000/api/branches/')
+          axios.get('/api/groups/'),
+          axios.get('/api/courses/'),
+          axios.get('/api/users/'),
+          axios.get('/api/rooms/'),
+          axios.get('/api/branches/')
         ])
         
         let groupsData = groupsRes.data
@@ -509,11 +509,11 @@ export default {
         }
 
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/groups/${this.form.id}/`, payload)
+          await axios.put(`/api/groups/${this.form.id}/`, payload)
           this.closeModal()
           this.fetchData()
         } else {
-          const response = await axios.post('http://localhost:8000/api/groups/', payload)
+          const response = await axios.post('/api/groups/', payload)
           this.closeModal()
           const newGroupId = response.data.id
           this.$router.push(`/groups/${newGroupId}`)
@@ -530,7 +530,7 @@ export default {
         return
       }
       try {
-        await axios.delete(`http://localhost:8000/api/groups/${group.id}/`)
+        await axios.delete(`/api/groups/${group.id}/`)
         this.fetchData()
       } catch (err) {
         console.error('Error deleting group:', err)

@@ -166,7 +166,7 @@ export default {
       this.error = null
 
       try {
-        const response = await axios.get('http://localhost:8000/api/courses/')
+        const response = await axios.get('/api/courses/')
         this.courses = response.data
         this.loading = false
       } catch (err) {
@@ -226,9 +226,9 @@ export default {
 
       try {
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/courses/${this.form.id}/`, payload)
+          await axios.put(`/api/courses/${this.form.id}/`, payload)
         } else {
-          await axios.post('http://localhost:8000/api/courses/', payload)
+          await axios.post('/api/courses/', payload)
         }
         this.submitting = false
         this.closeModal()
@@ -245,7 +245,7 @@ export default {
       }
 
       try {
-        await axios.delete(`http://localhost:8000/api/courses/${course.id}/`)
+        await axios.delete(`/api/courses/${course.id}/`)
         this.fetchCourses()
       } catch (err) {
         console.error('Error deleting course:', err)

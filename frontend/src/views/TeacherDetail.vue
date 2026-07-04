@@ -150,11 +150,11 @@ export default {
 
       try {
         const [teacherRes, groupsRes, coursesRes, branchesRes, roomsRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/users/${teacherId}/`),
-          axios.get('http://localhost:8000/api/groups/'),
-          axios.get('http://localhost:8000/api/courses/'),
-          axios.get('http://localhost:8000/api/branches/'),
-          axios.get('http://localhost:8000/api/rooms/')
+          axios.get(`/api/users/${teacherId}/`),
+          axios.get('/api/groups/'),
+          axios.get('/api/courses/'),
+          axios.get('/api/branches/'),
+          axios.get('/api/rooms/')
         ])
 
         this.teacher = teacherRes.data

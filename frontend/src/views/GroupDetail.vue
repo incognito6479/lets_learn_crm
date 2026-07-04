@@ -784,7 +784,7 @@ export default {
       
       this.submittingFinishGroup = true
       try {
-        await axios.patch(`http://localhost:8000/api/groups/${this.group.id}/`, {
+        await axios.patch(`/api/groups/${this.group.id}/`, {
           status: 'finished'
         })
         alert(this.$t('groupDetail.finish_group_success'))
@@ -809,15 +809,15 @@ export default {
       const id = this.$route.params.id
       try {
         const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes, absencesRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/groups/${id}/`),
-          axios.get('http://localhost:8000/api/courses/'),
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/rooms/'),
-          axios.get('http://localhost:8000/api/branches/'),
-          axios.get('http://localhost:8000/api/students/'),
-          axios.get('http://localhost:8000/api/enrollments/'),
-          axios.get('http://localhost:8000/api/grades/'),
-          axios.get('http://localhost:8000/api/absences/')
+          axios.get(`/api/groups/${id}/`),
+          axios.get('/api/courses/'),
+          axios.get('/api/users/'),
+          axios.get('/api/rooms/'),
+          axios.get('/api/branches/'),
+          axios.get('/api/students/'),
+          axios.get('/api/enrollments/'),
+          axios.get('/api/grades/'),
+          axios.get('/api/absences/')
         ])
 
         this.group = groupRes.data
@@ -889,14 +889,14 @@ export default {
       try {
         if (value === "") {
           if (existingGrade) {
-            await axios.delete(`http://localhost:8000/api/grades/${existingGrade.id}/`)
+            await axios.delete(`/api/grades/${existingGrade.id}/`)
           }
         } else {
           const valNum = parseInt(value)
           if (existingGrade) {
-            await axios.patch(`http://localhost:8000/api/grades/${existingGrade.id}/`, { grade: valNum })
+            await axios.patch(`/api/grades/${existingGrade.id}/`, { grade: valNum })
           } else {
-            await axios.post('http://localhost:8000/api/grades/', {
+            await axios.post('/api/grades/', {
               enrolled_student: studentId,
               group: this.group.id,
               teacher: this.userId,
@@ -919,7 +919,7 @@ export default {
       try {
         if (isChecked) {
           if (!existingAbsence) {
-            await axios.post('http://localhost:8000/api/absences/', {
+            await axios.post('/api/absences/', {
               student: studentId,
               group: this.group.id,
               teacher: this.userId,
@@ -928,7 +928,7 @@ export default {
           }
         } else {
           if (existingAbsence) {
-            await axios.delete(`http://localhost:8000/api/absences/${existingAbsence.id}/`)
+            await axios.delete(`/api/absences/${existingAbsence.id}/`)
           }
         }
         await this.fetchData()
@@ -999,7 +999,7 @@ export default {
       try {
         // Build an array of API requests for each student to enroll
         const requests = this.selectedStudentIds.map(studentId => {
-          return axios.post('http://localhost:8000/api/enrollments/', {
+          return axios.post('/api/enrollments/', {
             student: studentId,
             group: this.group.id,
             status: 'enrolled',
@@ -1023,7 +1023,7 @@ export default {
         return
       }
       try {
-        await axios.delete(`http://localhost:8000/api/enrollments/${enrolled.enrollmentId}/`)
+        await axios.delete(`/api/enrollments/${enrolled.enrollmentId}/`)
         await this.fetchData()
       } catch (err) {
         console.error('Error removing student:', err)
@@ -1070,7 +1070,7 @@ export default {
         const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
         const amountVal = parseFloat(rawAmount || 0)
         
-        await axios.post('http://localhost:8000/api/payments/', {
+        await axios.post('/api/payments/', {
           group: this.group.id,
           student: this.paymentEnrollment.studentId,
           amount: amountVal,
@@ -1123,11 +1123,11 @@ export default {
         phone2: this.studentForm.phone2 ? ('+998' + this.studentForm.phone2.replace(/\D/g, '')) : null
       }
       try {
-        const response = await axios.post('http://localhost:8000/api/students/', payload)
+        const response = await axios.post('/api/students/', payload)
         const newStudent = response.data
         
         // Refresh students list
-        const studentsRes = await axios.get('http://localhost:8000/api/students/')
+        const studentsRes = await axios.get('/api/students/')
         this.students = studentsRes.data
         
         // Auto-select the new student for enrollment

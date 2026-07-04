@@ -164,8 +164,8 @@ export default {
 
       try {
         const [roomsRes, branchesRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/rooms/'),
-          axios.get('http://localhost:8000/api/branches/')
+          axios.get('/api/rooms/'),
+          axios.get('/api/branches/')
         ])
         this.rooms = roomsRes.data
         this.branches = branchesRes.data
@@ -194,9 +194,9 @@ export default {
 
       try {
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/rooms/${this.form.id}/`, this.form)
+          await axios.put(`/api/rooms/${this.form.id}/`, this.form)
         } else {
-          await axios.post('http://localhost:8000/api/rooms/', this.form)
+          await axios.post('/api/rooms/', this.form)
         }
         this.submitting = false
         this.closeModal()
@@ -213,7 +213,7 @@ export default {
       }
 
       try {
-        await axios.delete(`http://localhost:8000/api/rooms/${room.id}/`)
+        await axios.delete(`/api/rooms/${room.id}/`)
         this.fetchData()
       } catch (err) {
         console.error('Error deleting room:', err)

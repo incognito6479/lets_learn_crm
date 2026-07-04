@@ -221,7 +221,7 @@ export default {
       this.error = null
       
       try {
-        const response = await axios.get('http://localhost:8000/api/students/')
+        const response = await axios.get('/api/students/')
         this.students = response.data
         this.loading = false
       } catch (err) {
@@ -274,9 +274,9 @@ export default {
       }
       try {
         if (this.isEdit) {
-          await axios.put(`http://localhost:8000/api/students/${this.form.id}/`, payload)
+          await axios.put(`/api/students/${this.form.id}/`, payload)
         } else {
-          await axios.post('http://localhost:8000/api/students/', payload)
+          await axios.post('/api/students/', payload)
         }
         this.submitting = false
         this.closeModal()
@@ -294,7 +294,7 @@ export default {
 
       try {
         // Delete request in backend sets is_active = False (soft delete)
-        await axios.delete(`http://localhost:8000/api/students/${student.id}/`)
+        await axios.delete(`/api/students/${student.id}/`)
         this.fetchStudents()
       } catch (err) {
         console.error('Error deleting student:', err)

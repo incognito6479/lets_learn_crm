@@ -379,13 +379,13 @@ export default {
       this.error = null
       try {
         const [enrollmentRes, paymentsRes, coursesRes, usersRes, roomsRes, branchesRes, allEnrollmentsRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/enrollments/${id}/`),
-          axios.get('http://localhost:8000/api/payments/'),
-          axios.get('http://localhost:8000/api/courses/'),
-          axios.get('http://localhost:8000/api/users/'),
-          axios.get('http://localhost:8000/api/rooms/'),
-          axios.get('http://localhost:8000/api/branches/'),
-          axios.get('http://localhost:8000/api/enrollments/')
+          axios.get(`/api/enrollments/${id}/`),
+          axios.get('/api/payments/'),
+          axios.get('/api/courses/'),
+          axios.get('/api/users/'),
+          axios.get('/api/rooms/'),
+          axios.get('/api/branches/'),
+          axios.get('/api/enrollments/')
         ])
 
         this.enrollment = enrollmentRes.data
@@ -396,7 +396,7 @@ export default {
         this.branches = branchesRes.data
         
         // Populate groups list locally for calculations
-        const groupsRes = await axios.get('http://localhost:8000/api/groups/')
+        const groupsRes = await axios.get('/api/groups/')
         this.allEnrollments = allEnrollmentsRes.data.map(e => {
           const g = groupsRes.data.find(grp => grp.id === e.group)
           return {
@@ -407,8 +407,8 @@ export default {
         
         // Fetch student detail and current group detail using foreign keys
         const [studentRes, groupRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/students/${this.enrollment.student}/`),
-          axios.get(`http://localhost:8000/api/groups/${this.enrollment.group}/`)
+          axios.get(`/api/students/${this.enrollment.student}/`),
+          axios.get(`/api/groups/${this.enrollment.group}/`)
         ])
         
         this.student = studentRes.data
@@ -520,7 +520,7 @@ export default {
         const rawAmount = String(this.paymentForm.amount).replace(/\s/g, '')
         const amountVal = parseFloat(rawAmount || 0)
         
-        await axios.post('http://localhost:8000/api/payments/', {
+        await axios.post('/api/payments/', {
           group: this.group.id,
           student: this.student.id,
           amount: amountVal,
