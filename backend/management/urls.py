@@ -4,7 +4,7 @@ from .views import (
     BranchViewSet, UserViewSet, StudentViewSet, 
     RoomViewSet, CourseViewSet, GroupViewSet, 
     EnrollmentViewSet, PaymentViewSet, GradeViewSet, AbsenceViewSet,
-    CustomTokenObtainPairView
+    CustomTokenObtainPairView, NotificationViewSet
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -19,6 +19,7 @@ router.register(r'enrollments', EnrollmentViewSet)
 router.register(r'payments', PaymentViewSet)
 router.register(r'grades', GradeViewSet)
 router.register(r'absences', AbsenceViewSet)
+router.register(r'notifications', NotificationViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -90,6 +90,23 @@
             >RU</button>
           </div>
 
+          <!-- Notification Button with count in light yellow rectangle -->
+          <div class="notification-container" v-if="isLoggedIn">
+            <button 
+              @click="$router.push({ name: 'Notifications' })" 
+              class="notif-yellow-btn" 
+              :title="$t('common.notifications')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-bell-icon">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span v-if="unreadNotificationsCount > 0" class="notif-yellow-count">
+                {{ unreadNotificationsCount }}
+              </span>
+            </button>
+          </div>
+
           <!-- User Profile Dropdown -->
           <div class="user-dropdown-container" v-if="isLoggedIn">
             <button @click.stop="toggleUserDropdown" class="user-profile-trigger">
@@ -174,6 +191,7 @@
         </form>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -195,7 +213,9 @@ export default {
         confirmPassword: ''
       },
       submittingChangePassword: false,
-      changePasswordError: null
+      changePasswordError: null,
+      unreadNotificationsCount: 0,
+      notificationPollingInterval: null
     }
   },
   computed: {
@@ -285,19 +305,30 @@ export default {
     }
 
     document.addEventListener('click', this.handleDocumentClick)
+    window.addEventListener('update-unread-badge', this.fetchNotifications)
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize)
     document.removeEventListener('click', this.handleDocumentClick)
+    window.removeEventListener('update-unread-badge', this.fetchNotifications)
+    this.stopNotificationPolling()
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
     document.removeEventListener('click', this.handleDocumentClick)
+    window.removeEventListener('update-unread-badge', this.fetchNotifications)
+    this.stopNotificationPolling()
   },
   methods: {
     updateUser() {
       this.username = localStorage.getItem('username') || ''
       this.userRole = localStorage.getItem('user_role') || ''
+      if (this.isLoggedIn) {
+        this.fetchNotifications()
+        this.startNotificationPolling()
+      } else {
+        this.stopNotificationPolling()
+      }
     },
     logout() {
       // Clear storage
@@ -306,6 +337,7 @@ export default {
       localStorage.removeItem('username')
       localStorage.removeItem('user_role')
       localStorage.removeItem('user_id')
+      this.stopNotificationPolling()
       
       // Clear axios defaults
       delete axios.defaults.headers.common['Authorization']
@@ -340,6 +372,9 @@ export default {
       if (this.isUserDropdownOpen) {
         this.closeUserDropdown()
       }
+      if (this.isNotificationDropdownOpen && !event.target.closest('.notification-container')) {
+        this.closeNotificationDropdown()
+      }
     },
     triggerChangePassword() {
       this.closeUserDropdown()
@@ -350,6 +385,27 @@ export default {
     },
     closeChangePasswordModal() {
       this.showChangePasswordModal = false
+    },
+    async fetchNotifications() {
+      if (!this.isLoggedIn) return
+      try {
+        const countRes = await axios.get('/api/notifications/unread-count/')
+        this.unreadNotificationsCount = countRes.data.unread_count
+      } catch (err) {
+        console.error('Error fetching notifications:', err)
+      }
+    },
+    startNotificationPolling() {
+      if (this.notificationPollingInterval) return
+      this.notificationPollingInterval = setInterval(() => {
+        this.fetchNotifications()
+      }, 30000)
+    },
+    stopNotificationPolling() {
+      if (this.notificationPollingInterval) {
+        clearInterval(this.notificationPollingInterval)
+        this.notificationPollingInterval = null
+      }
     },
     async submitChangePassword() {
       if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {

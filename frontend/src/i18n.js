@@ -28,7 +28,10 @@ const translations = {
       uzs: "сум",
       total: "Всего",
       error_save: "Произошла ошибка при сохранении данных.",
-      error_delete: "Произошла ошибка при удалении."
+      error_delete: "Произошла ошибка при удалении.",
+      markAllRead: "Отметить все как прочитанные",
+      confirmReceipt: "Подтвердить получение",
+      noNotifications: "Нет уведомлений"
     },
     nav: {
       statistics: "Статистика",
@@ -228,7 +231,22 @@ const translations = {
       teacher_paid: "Выплачено преподавателю",
       teacher_remaining: "Осталось выплатить",
       pay_teacher: "Выплатить преподавателю",
-      pay_teacher_modal_title: "Оформить выплату преподавателю"
+      pay_teacher_modal_title: "Оформить выплату преподавателю",
+      payout_success_info: "Выплата успешно оформлена. Преподавателю необходимо подтвердить получение платежа в своем личном кабинете."
+    },
+    notifications: {
+      title: "Уведомления",
+      subtitle: "Просмотр уведомлений и управление ими",
+      empty_desc: "У вас нет новых уведомлений.",
+      mark_read: "Прочитано",
+      payout_confirm_success: "Выплата успешно подтверждена!",
+      payout_confirm_error: "Ошибка подтверждения выплаты!",
+      absence_title: "Предупреждение о пропуске",
+      payment_pending_title: "Ожидается подтверждение выплаты",
+      payment_accepted_title: "Выплата подтверждена",
+      absence_msg: "Студент {student} был отмечен отсутствующим в группе {group} преподавателем {teacher}.",
+      payment_pending_msg: "Администратор зарегистрировал выплату в размере {amount} UZS для группы {group}. Пожалуйста, подтвердите получение.",
+      payment_accepted_msg: "Преподаватель {teacher} подтвердил получение выплаты в размере {amount} UZS для группы {group}."
     },
     payments: {
       title: "Платежи",
@@ -433,8 +451,10 @@ const translations = {
       select: "Tanlang",
       uzs: "so'm",
       total: "Jami",
-      error_save: "Ma'lumotlarni saqlashda xatolik yuz berdi.",
-      error_delete: "O'chirishda xatolik yuz berdi."
+      error_delete: "O'chirishda xatolik yuz berdi.",
+      markAllRead: "Hammasini o'qilgan deb belgilash",
+      confirmReceipt: "Qabul qilinganligini tasdiqlash",
+      noNotifications: "Bildirishnomalar yo'q"
     },
     nav: {
       statistics: "Statistika",
@@ -634,7 +654,22 @@ const translations = {
       teacher_paid: "O'qituvchiga to'langan",
       teacher_remaining: "Qolgan to'lov",
       pay_teacher: "O'qituvchiga to'lash",
-      pay_teacher_modal_title: "O'qituvchiga to'lovni rasmiylashtirish"
+      pay_teacher_modal_title: "O'qituvchiga to'lovni rasmiylashtirish",
+      payout_success_info: "To'lov muvaffaqiyatli rasmiylashtirildi. O'qituvchi o'z shaxsiy kabinetida to'lov qabul qilinganligini tasdiqlashi kerak."
+    },
+    notifications: {
+      title: "Bildirishnomalar",
+      subtitle: "Bildirishnomalaringizni ko'rib chiqing va boshqaring",
+      empty_desc: "Sizda yangi bildirishnomalar yo'q.",
+      mark_read: "O'qildi deb belgilash",
+      payout_confirm_success: "To'lov muvaffaqiyatli tasdiqlandi!",
+      payout_confirm_error: "To'lovni tasdiqlashda xatolik!",
+      absence_title: "Talaba dars qoldirganligi haqida bildirishnoma",
+      payment_pending_title: "To'lov tasdiqlanishi kutilmoqda",
+      payment_accepted_title: "To'lov tasdiqlandi",
+      absence_msg: "Talaba {student} guruh {group} darsida o'qituvchi {teacher} tomonidan darsda qatnashmadi deb belgilandi.",
+      payment_pending_msg: "Administrator {group} guruhi uchun {amount} UZS to'lov rasmiylashtirdi. Iltimos, to'lov qabul qilinganligini tasdiqlang.",
+      payment_accepted_msg: "O'qituvchi {teacher} {group} guruhi uchun {amount} UZS to'lov qabul qilinganligini tasdiqladi."
     },
     payments: {
       title: "To'lovlar",

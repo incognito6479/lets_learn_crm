@@ -3,8 +3,14 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
-from management.models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
+from management.models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification
 from management.views import GroupViewSet
+from django.core.management import call_command
+import io
+import openpyxl
+from django.core.files.uploadedfile import SimpleUploadedFile
+from openpyxl.styles import Font, PatternFill
+
 
 class GroupFinishTest(TestCase):
     def setUp(self):
@@ -410,11 +416,6 @@ class APIOperationsTest(APITestCase):
         self.assertEqual(response.data['teacher_remaining'], 25000.00)
 
     def test_excel_group_import(self):
-        import io
-        import openpyxl
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        from openpyxl.styles import Font
-
         # Create mock excel workbook
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -435,9 +436,14 @@ class APIOperationsTest(APITestCase):
         ws.cell(row=3, column=4, value="-") # day 1 absence
         ws.cell(row=3, column=35, value=450)
         ws.cell(row=3, column=37, value="93 727 70 07")
+        ws.cell(row=3, column=38, value="99 988 98 98") # Col AL
         
         red_font = Font(color="FFFF0000")
         ws.cell(row=3, column=36, value=450).font = red_font
+
+        # Apply yellow background fill to student name cell
+        yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        ws.cell(row=3, column=2).fill = yellow_fill
 
         # Row 4: student 2 - Timur, date: 16/Jun, total: 0, note: 450 (overpaid - green text), phone: 88 287 17 72
         ws.cell(row=4, column=1, value=2)
@@ -448,6 +454,10 @@ class APIOperationsTest(APITestCase):
         
         green_font = Font(color="FF00FF00")
         ws.cell(row=4, column=36, value=450).font = green_font
+
+        # Apply green background fill to date cell (Col C) for student 2 (marks free enrollment)
+        green_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
+        ws.cell(row=4, column=3).fill = green_fill
 
         # Row 5: ОБЩИЙ ИТОГ (stops loop)
         ws.cell(row=5, column=2, value="ОБЩИЙ ИТОГ")
@@ -491,25 +501,32 @@ class APIOperationsTest(APITestCase):
         # 3. Students
         s1 = Student.objects.get(full_name="Amirshox Davronov")
         self.assertEqual(s1.phone1, "+998937277007")
+        self.assertEqual(s1.phone2, "+998999889898")
 
         s2 = Student.objects.get(full_name="Timur Mustafoev")
         self.assertEqual(s2.phone1, "+998882871772")
+        self.assertIsNone(s2.phone2)
 
         # 4. Enrollments
         e1 = Enrollment.objects.get(student=s1, group=group)
         self.assertEqual(e1.date.month, 6)
         self.assertEqual(e1.date.day, 24)
+        self.assertEqual(e1.status, "dropped") # Excluded due to yellow cell fill
+        self.assertFalse(e1.enrolled_free)
 
         e2 = Enrollment.objects.get(student=s2, group=group)
         self.assertEqual(e2.date.month, 6)
         self.assertEqual(e2.date.day, 16)
+        self.assertEqual(e2.status, "enrolled")
+        self.assertTrue(e2.enrolled_free)
 
         # 5. Payments
         p1 = Payment.objects.filter(student=s1, group=group, amount=450000.00).count()
         self.assertEqual(p1, 2)
 
-        p2 = Payment.objects.filter(student=s2, group=group, amount=450000.00).count()
-        self.assertEqual(p2, 2)
+        # Student 2 is enrolled free, so no prior cash payments were generated
+        p2 = Payment.objects.filter(student=s2, group=group).count()
+        self.assertEqual(p2, 0)
 
         # 6. Absences
         absences = Absence.objects.filter(student=s1, group=group)
@@ -617,3 +634,297 @@ class APIOperationsTest(APITestCase):
         payment_amounts = [float(p['amount']) for p in response.data]
         self.assertIn(10000.00, payment_amounts)
         self.assertNotIn(20000.00, payment_amounts)
+
+class EndToEndBackendTests(APITestCase):
+    def setUp(self):
+        # Create a branch, admin user
+        self.branch = Branch.objects.create(name="E2E Branch")
+        self.admin = User.objects.create_superuser(
+            username="e2e_admin",
+            password="adminpassword",
+            role="superuser"
+        )
+        self.client.force_authenticate(user=self.admin)
+
+    def test_e2e_crud_operations(self):
+        # 1. Course CRUD
+        response = self.client.post('/api/courses/', {
+            'name': 'New Course',
+            'price': '120000.00',
+            'description': 'E2E Test Course'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        course_id = response.data['id']
+
+        response = self.client.get('/api/courses/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(c['id'] == course_id for c in response.data))
+
+        response = self.client.patch(f'/api/courses/{course_id}/', {
+            'name': 'Updated Course'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], 'Updated Course')
+
+        response = self.client.delete(f'/api/courses/{course_id}/')
+        self.assertEqual(response.status_code, 204)
+        # Verify soft delete
+        self.assertFalse(Course.objects.get(id=course_id).is_active)
+
+        # 2. Branch CRUD
+        response = self.client.post('/api/branches/', {
+            'name': 'New Branch',
+            'description': 'E2E Branch desc'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        branch_id = response.data['id']
+
+        response = self.client.get('/api/branches/')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.patch(f'/api/branches/{branch_id}/', {
+            'name': 'Updated Branch'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        # Since BranchViewSet overrides perform_destroy via SoftDeleteModelViewSet, verify soft delete
+        response = self.client.delete(f'/api/branches/{branch_id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Branch.objects.get(id=branch_id).is_active)
+
+        # 3. Room CRUD
+        response = self.client.post('/api/rooms/', {
+            'name': 'New Room',
+            'branch': self.branch.id,
+            'description': 'E2E Room desc'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        room_id = response.data['id']
+
+        response = self.client.get('/api/rooms/')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.patch(f'/api/rooms/{room_id}/', {
+            'name': 'Updated Room'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.delete(f'/api/rooms/{room_id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Room.objects.get(id=room_id).is_active)
+
+        # 4. Student CRUD
+        response = self.client.post('/api/students/', {
+            'full_name': 'E2E Student',
+            'phone1': '998911112233'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        student_id = response.data['id']
+
+        response = self.client.get('/api/students/')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.patch(f'/api/students/{student_id}/', {
+            'full_name': 'Updated Student'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.delete(f'/api/students/{student_id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Student.objects.get(id=student_id).is_active)
+
+        # 5. User/Teacher CRUD
+        response = self.client.post('/api/users/', {
+            'username': 'e2e_teacher',
+            'first_name': 'E2E Teacher',
+            'role': 'teacher',
+            'password': 'teacherpassword'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        teacher_id = response.data['id']
+
+        response = self.client.get('/api/users/')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.patch(f'/api/users/{teacher_id}/', {
+            'first_name': 'Updated Teacher'
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.delete(f'/api/users/{teacher_id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(User.objects.get(id=teacher_id).is_active)
+
+    def test_e2e_enrollment_payouts_and_debts(self):
+
+        # Setup active student, course, room, group, teacher
+        teacher = User.objects.create_user(
+            username="active_teacher",
+            first_name="Active Teacher",
+            role="teacher",
+            branch=self.branch
+        )
+        student = Student.objects.create(full_name="Active Student", phone1="998901234567")
+        course = Course.objects.create(name="Active Course", price=Decimal('200000.00'))
+        room = Room.objects.create(name="Active Room", branch=self.branch)
+        group = Group.objects.create(
+            name="Active Group",
+            course=course,
+            teacher=teacher,
+            room=room,
+            branch=self.branch,
+            price=Decimal('200000.00'),
+            starts_at="10:00:00",
+            duration=90,
+            started_at=timezone.localdate(),
+            status="ongoing",
+            teacher_share=40
+        )
+
+        # 1. Enroll Student via API
+        response = self.client.post('/api/enrollments/', {
+            'student': student.id,
+            'group': group.id,
+            'status': 'enrolled'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        enrollment_id = response.data['id']
+
+        # Verify initial debt is set to the group price
+        enrollment = Enrollment.objects.get(id=enrollment_id)
+        self.assertEqual(float(enrollment.debt_amount), 200000.00)
+
+        # 2. Accept Student Payment via API
+        response = self.client.post('/api/payments/', {
+            'student': student.id,
+            'group': group.id,
+            'amount': '200000.00',
+            'payment_method': 'cash',
+            'status': 'accepted'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        payment_id = response.data['id']
+
+        # Verify debt is now 0 and status is paid
+        enrollment.refresh_from_db()
+        self.assertEqual(float(enrollment.debt_amount), 0.00)
+        self.assertEqual(enrollment.payment_status, 'paid')
+
+        # 3. Pay Teacher (Teacher Payout) via API
+        # E.g. teacher earnings should be 200,000 * 40% = 80,000
+        # Let's pay them 50,000 UZS
+        response = self.client.post('/api/payments/', {
+            'student': None,
+            'teacher': teacher.id,
+            'group': group.id,
+            'amount': '50000.00',
+            'payment_method': 'cash'
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        teacher_payment_id = response.data['id']
+
+        # Authenticate as teacher to confirm receipt
+        self.client.force_authenticate(user=teacher)
+        confirm_resp = self.client.post(f'/api/payments/{teacher_payment_id}/confirm/')
+        self.assertEqual(confirm_resp.status_code, 200)
+
+        # Authenticate back as Admin
+        self.client.force_authenticate(user=self.admin)
+
+        # Retrieve group details to verify teacher remaining payout calculation
+        response = self.client.get(f'/api/groups/{group.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['teacher_earnings'], 80000.00)
+        self.assertEqual(response.data['teacher_paid'], 50000.00)
+        self.assertEqual(response.data['teacher_remaining'], 30000.00)
+
+        # 4. Cancel student payment via API (soft delete)
+        response = self.client.delete(f'/api/payments/{payment_id}/')
+        self.assertEqual(response.status_code, 204)
+        
+        # Verify payment is soft deleted / canceled
+        payment = Payment.objects.get(id=payment_id)
+        self.assertFalse(payment.is_active)
+        self.assertEqual(payment.status, 'canceled')
+
+        # 5. Call check_student_debts management command
+        # After canceling student payment, debt should return to 200,000.
+        # Running management command should recalculate this correctly
+        call_command('check_student_debts')
+        enrollment.refresh_from_db()
+        self.assertEqual(float(enrollment.debt_amount), 200000.00)
+        self.assertEqual(enrollment.payment_status, 'debt')
+
+class NotificationsAndPayoutConfirmationsTest(APITestCase):
+    def setUp(self):
+        self.branch = Branch.objects.create(name="Tashkent Branch")
+        self.admin = User.objects.create_user(
+            username="admin_user",
+            password="testpassword",
+            role="admin",
+            branch=self.branch
+        )
+        self.teacher = User.objects.create_user(
+            username="teacher_user",
+            password="testpassword",
+            role="teacher"
+        )
+        self.student = Student.objects.create(full_name="Abubakir Karimov", phone1="998901234567")
+        self.group = Group.objects.create(
+            name="Intermediate English",
+            teacher=self.teacher,
+            branch=self.branch,
+            started_at=timezone.localdate(),
+            starts_at="18:00:00",
+            duration=90,
+            price=200000.00
+        )
+        self.enrollment = Enrollment.objects.create(
+            student=self.student,
+            group=self.group
+        )
+
+    def test_absence_creates_notification_for_admin(self):
+        self.client.force_authenticate(user=self.teacher)
+        data = {
+            'student': self.student.id,
+            'group': self.group.id,
+            'teacher': self.teacher.id,
+            'date': str(timezone.localdate())
+        }
+        response = self.client.post('/api/absences/', data)
+        self.assertEqual(response.status_code, 201)
+
+        notifs = Notification.objects.filter(recipient=self.admin, notification_type='absence')
+        self.assertEqual(notifs.count(), 1)
+        self.assertIn("marked absent", notifs.first().message)
+
+    def test_teacher_payout_confirmation_flow(self):
+        self.client.force_authenticate(user=self.admin)
+        data = {
+            'group': self.group.id,
+            'teacher': self.teacher.id,
+            'amount': 150000.00,
+            'payment_method': 'cash'
+        }
+        response = self.client.post('/api/payments/', data)
+        self.assertEqual(response.status_code, 201)
+        payment_id = response.data['id']
+
+        payment = Payment.objects.get(id=payment_id)
+        self.assertEqual(payment.status, 'pending')
+
+        notifs = Notification.objects.filter(recipient=self.teacher, notification_type='payment_pending')
+        self.assertEqual(notifs.count(), 1)
+        self.assertIn("Payout Pending Confirmation", notifs.first().title)
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.post(f'/api/payments/{payment_id}/confirm/')
+        self.assertEqual(response.status_code, 200)
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, 'accepted')
+
+        admin_notifs = Notification.objects.filter(recipient=self.admin, notification_type='payment_accepted')
+        self.assertEqual(admin_notifs.count(), 1)
+        self.assertIn("confirmed receipt", admin_notifs.first().message)

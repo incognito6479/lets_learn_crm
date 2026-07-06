@@ -1266,6 +1266,7 @@ export default {
         
         this.closeTeacherPayoutModal()
         await this.fetchData()
+        alert(this.$t('groupDetail.payout_success_info'))
       } catch (err) {
         console.error('Error recording payout:', err)
         alert(this.$t('groupDetail.error_payment'))

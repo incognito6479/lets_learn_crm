@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class BaseModel(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
 
     class Meta:
         abstract = True
@@ -48,8 +48,8 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
 class Student(BaseModel):
-    full_name = models.CharField(max_length=255)
-    phone1 = models.CharField(max_length=20)
+    full_name = models.CharField(max_length=255, db_index=True)
+    phone1 = models.CharField(max_length=20, db_index=True)
     phone2 = models.CharField(max_length=20, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 
@@ -92,7 +92,7 @@ class Group(BaseModel):
     starts_at = models.TimeField()
     duration = models.IntegerField(help_text="Duration in minutes")
     description = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled', db_index=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     teacher_share = models.IntegerField(default=50, help_text="Teacher's revenue share percentage")
     group_days_at = models.CharField(max_length=20, choices=DAYS_CHOICES, default='Mon-Wed-Fri')
@@ -113,8 +113,8 @@ class Enrollment(BaseModel):
     student = models.ForeignKey(Student, on_delete=models.PROTECT)
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
     date = models.DateField(default=timezone.localdate)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled')
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enrolled', db_index=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt', db_index=True)
     debt_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     enrolled_free = models.BooleanField(default=False)
 
@@ -175,11 +175,12 @@ class Payment(BaseModel):
         ('card', 'Card'),
     )
     STATUS_CHOICES = (
+        ('pending', 'Pending Confirmation'),
         ('accepted', 'Accepted'),
         ('canceled', 'Canceled')
     )
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='accepted')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='accepted', db_index=True)
     group = models.ForeignKey(Group, on_delete=models.PROTECT)
     student = models.ForeignKey(Student, on_delete=models.PROTECT, null=True, blank=True)
     teacher = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, limit_choices_to={'role': 'teacher'})
@@ -221,3 +222,18 @@ class Absence(BaseModel):
 
     def __str__(self):
         return f"{self.student.full_name} - {self.group.name} - {self.date}"
+
+class Notification(BaseModel):
+    NOTIFICATION_TYPES = (
+        ('absence', 'Absence Alert'),
+        ('payment_pending', 'Payment Pending Confirmation'),
+        ('payment_accepted', 'Payment Accepted'),
+    )
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False, db_index=True)
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, default='absence')
+
+    def __str__(self):
+        return f"{self.recipient.username} - {self.title} - Read: {self.is_read}"

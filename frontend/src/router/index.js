@@ -13,6 +13,7 @@ import DebtList from '../views/DebtList.vue'
 import EnrollmentDetail from '../views/EnrollmentDetail.vue'
 import Timetable from '../views/Timetable.vue'
 import TeacherDetail from '../views/TeacherDetail.vue'
+import Notifications from '../views/Notifications.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -28,7 +29,8 @@ const routes = [
   { path: '/debts', name: 'DebtList', component: DebtList },
   { path: '/enrollments/:id', name: 'EnrollmentDetail', component: EnrollmentDetail },
   { path: '/timetable', name: 'Timetable', component: Timetable },
-  { path: '/teachers/:id', name: 'TeacherDetail', component: TeacherDetail }
+  { path: '/teachers/:id', name: 'TeacherDetail', component: TeacherDetail },
+  { path: '/notifications', name: 'Notifications', component: Notifications }
 ]
 
 const router = createRouter({
@@ -51,7 +53,7 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     if (isAuthenticated && role === 'teacher') {
-      const allowedRoutesForTeacher = ['Timetable', 'Groups', 'GroupDetail', 'Login']
+      const allowedRoutesForTeacher = ['Timetable', 'Groups', 'GroupDetail', 'EnrollmentDetail', 'Login', 'Notifications']
       if (!allowedRoutesForTeacher.includes(to.name)) {
         next({ name: 'Timetable' })
         return

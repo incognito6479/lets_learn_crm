@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification
 from django.db.models import Sum
 
 
@@ -139,3 +139,8 @@ class AbsenceSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
