@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence
+from django.db.models import Sum
+
 
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,9 +48,38 @@ class CourseSerializer(serializers.ModelSerializer):
         exclude = ('created_at', 'is_active')
 
 class GroupSerializer(serializers.ModelSerializer):
+    teacher_paid = serializers.SerializerMethodField()
+    teacher_earnings = serializers.SerializerMethodField()
+    teacher_remaining = serializers.SerializerMethodField()
+
     class Meta:
         model = Group
         exclude = ('created_at', 'is_active')
+
+    def get_teacher_paid(self, obj):
+        if not obj.teacher:
+            return 0.0
+        payouts = Payment.objects.filter(
+            group=obj,
+            teacher=obj.teacher,
+            status='accepted'
+        ).aggregate(total=Sum('amount'))['total']
+        return float(payouts or 0.0)
+
+    def get_teacher_earnings(self, obj):
+        student_payments = Payment.objects.filter(
+            group=obj,
+            student__isnull=False,
+            status='accepted'
+        ).aggregate(total=Sum('amount'))['total']
+        total_student = float(student_payments or 0.0)
+        share = obj.teacher_share or 50
+        return total_student * (share / 100.0)
+
+    def get_teacher_remaining(self, obj):
+        earnings = self.get_teacher_earnings(obj)
+        paid = self.get_teacher_paid(obj)
+        return max(0.0, earnings - paid)
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:

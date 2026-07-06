@@ -22,6 +22,14 @@
           {{ $t('groups.status_' + (group.status || 'ongoing')) }}
         </span>
         <button 
+          v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0"
+          @click="openTeacherPayoutModal" 
+          class="btn btn-primary"
+          style="background-color: #3b82f6;"
+        >
+          {{ $t('groupDetail.pay_teacher') }}
+        </button>
+        <button 
           v-if="group.status !== 'finished' && userRole !== 'teacher'"
           @click="confirmFinishGroup" 
           class="btn btn-danger"
@@ -85,6 +93,60 @@
           <div class="info-description-box" v-if="group.description">
             <span class="info-label" style="display: block; margin-bottom: 0.4rem;">{{ $t('common.description') }}</span>
             <p class="description-text">{{ group.description }}</p>
+          </div>
+        </div>
+
+        <!-- Teacher Payout/Financials Card -->
+        <div class="info-card" style="margin-top: 1.5rem; border-top: 4px solid #3b82f6; background-color: #1e293b;">
+          <h3 class="info-card-title" style="color: #60a5fa; border-bottom: 1px solid #334155; padding-bottom: 0.6rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📊</span> <span>{{ $t('groupDetail.teacher_share') }}</span>
+          </h3>
+          <div class="info-details-list" style="gap: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background-color: #0f172a; padding: 0.75rem 1rem; border-radius: 8px;">
+              <span class="info-label" style="font-weight: 500; color: #94a3b8; font-size: 0.875rem;">{{ $t('groupDetail.teacher_share') }}</span>
+              <span class="info-value font-bold" style="font-size: 1.2rem; color: #ffffff;">{{ group.teacher_share || 50 }}%</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; background-color: #0f172a; padding: 0.75rem 1rem; border-radius: 8px;">
+              <span class="info-label" style="font-size: 0.8rem; text-transform: uppercase; tracking: 0.05em; color: #94a3b8; text-align: left;">
+                {{ $t('groupDetail.teacher_earnings') }}
+              </span>
+              <span class="font-mono font-bold" style="font-size: 1.3rem; text-align: left; color: #ffffff;">
+                {{ formatPrice(group.teacher_earnings) }} <span style="font-size: 0.875rem; font-weight: normal; color: #94a3b8;">UZS</span>
+              </span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; background-color: #0f172a; padding: 0.75rem 1rem; border-radius: 8px;">
+              <span class="info-label" style="font-size: 0.8rem; text-transform: uppercase; tracking: 0.05em; color: #94a3b8; text-align: left;">
+                {{ $t('groupDetail.teacher_paid') }}
+              </span>
+              <span class="font-mono font-bold" style="font-size: 1.3rem; text-align: left; color: #ffffff;">
+                {{ formatPrice(group.teacher_paid) }} <span style="font-size: 0.875rem; font-weight: normal; color: #94a3b8;">UZS</span>
+              </span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; background-color: #0f172a; padding: 0.75rem 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <span class="info-label" style="font-size: 0.85rem; text-transform: uppercase; tracking: 0.05em; color: #f59e0b; font-weight: 600; text-align: left;">
+                {{ $t('groupDetail.teacher_remaining') }}
+              </span>
+              <span class="font-mono font-bold" style="font-size: 1.4rem; text-align: left; color: #ffffff;">
+                {{ formatPrice(group.teacher_remaining) }} <span style="font-size: 0.875rem; font-weight: normal; color: #94a3b8;">UZS</span>
+              </span>
+            </div>
+
+            <button 
+              v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0"
+              @click="openTeacherPayoutModal" 
+              class="btn btn-primary"
+              style="width: 100%; padding: 0.75rem; font-weight: 600; font-size: 0.95rem; background-color: #3b82f6; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
+            >
+              <svg style="width: 1.2rem; height: 1.2rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="12" y1="10" x2="12" y2="14"></line>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+              {{ $t('groupDetail.pay_teacher') }}
+            </button>
           </div>
         </div>
       </div>
@@ -525,6 +587,68 @@
       </div>
     </div>
 
+    <!-- Record Teacher Payout Modal -->
+    <div v-if="showTeacherPayoutModal" class="modal-backdrop" @click.self="closeTeacherPayoutModal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h2 class="modal-title">{{ $t('groupDetail.pay_teacher_modal_title') }}</h2>
+          <button @click="closeTeacherPayoutModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="submitTeacherPayout">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="payoutAmount" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_amount') }}</label>
+              <input
+                type="text"
+                inputmode="numeric"
+                id="payoutAmount"
+                :value="payoutForm.amount"
+                @input="formatPayoutInputPrice"
+                required
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="payoutMethod" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_method') }}</label>
+              <select id="payoutMethod" v-model="payoutForm.payment_method" required class="form-input" style="width: 100%; box-sizing: border-box;">
+                <option value="cash">{{ $t('groupDetail.cash') }}</option>
+                <option value="card">{{ $t('groupDetail.card') }}</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="payoutDescription" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.payment_desc') }}</label>
+              <textarea
+                id="payoutDescription"
+                v-model="payoutForm.description"
+                class="form-input"
+                rows="3"
+                :placeholder="$t('groupDetail.payment_desc_placeholder')"
+                style="width: 100%; box-sizing: border-box; resize: vertical;"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closeTeacherPayoutModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submittingPayout || !payoutForm.amount"
+            >
+              {{ submittingPayout ? $t('groupDetail.processing') : $t('groupDetail.confirm_payment_btn') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Create Student Modal -->
     <div v-if="showCreateStudentModal" class="modal-backdrop" @click.self="closeCreateStudentModal" style="z-index: 10000;">
       <div class="modal-content" style="max-width: 480px;">
@@ -656,6 +780,15 @@ export default {
       },
       submittingPayment: false,
       submittingFinishGroup: false,
+      
+      // Teacher payout modal state
+      showTeacherPayoutModal: false,
+      submittingPayout: false,
+      payoutForm: {
+        amount: '',
+        payment_method: 'cash',
+        description: ''
+      },
 
       // Create student modal state
       showCreateStudentModal: false,
@@ -830,13 +963,7 @@ export default {
         this.grades = gradesRes.data
         this.absences = absencesRes.data
 
-        // Set default month and year of the monthly grid to the group's start date on initial load
-        if (this.group && this.group.started_at && this.hasInitializedMonthlyGrid === undefined) {
-          const startDate = new Date(this.group.started_at)
-          this.monthlyGridMonth = startDate.getMonth()
-          this.monthlyGridYear = startDate.getFullYear()
-          this.hasInitializedMonthlyGrid = true
-        }
+
       } catch (err) {
         console.error('Error fetching group details:', err)
         this.error = this.$t('stats.api_error')
@@ -1085,6 +1212,65 @@ export default {
         alert(this.$t('groupDetail.error_payment'))
       } finally {
         this.submittingPayment = false
+      }
+    },
+    openTeacherPayoutModal() {
+      this.payoutForm = {
+        amount: Math.round(this.group.teacher_remaining).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '),
+        payment_method: 'cash',
+        description: `Payout to teacher: ${this.getTeacherName(this.group.teacher)}`
+      }
+      this.showTeacherPayoutModal = true
+    },
+    closeTeacherPayoutModal() {
+      this.showTeacherPayoutModal = false
+      this.payoutForm = {
+        amount: '',
+        payment_method: 'cash',
+        description: ''
+      }
+    },
+    formatPayoutInputPrice(event) {
+      const selectionStart = event.target.selectionStart
+      const value = event.target.value
+      const oldLength = value.length
+      
+      const digits = value.replace(/\D/g, '')
+      const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      
+      this.payoutForm.amount = formatted
+      
+      this.$nextTick(() => {
+        if (event.target) {
+          const newLength = formatted.length
+          const delta = newLength - oldLength
+          const newCursorPos = selectionStart + delta
+          event.target.setSelectionRange(newCursorPos, newCursorPos)
+        }
+      })
+    },
+    async submitTeacherPayout() {
+      this.submittingPayout = true
+      try {
+        const rawAmount = String(this.payoutForm.amount).replace(/\s/g, '')
+        const amountVal = parseFloat(rawAmount || 0)
+        
+        await axios.post('/api/payments/', {
+          group: this.group.id,
+          student: null,
+          teacher: this.group.teacher,
+          amount: amountVal,
+          payment_method: this.payoutForm.payment_method,
+          description: this.payoutForm.description || `Payout to teacher for group: ${this.group.name}`
+        })
+        
+        this.closeTeacherPayoutModal()
+        await this.fetchData()
+      } catch (err) {
+        console.error('Error recording payout:', err)
+        alert(this.$t('groupDetail.error_payment'))
+      } finally {
+        this.submittingPayout = false
       }
     },
     openCreateStudentModal() {

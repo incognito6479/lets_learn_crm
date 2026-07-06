@@ -19,7 +19,7 @@
         <input
           type="text"
           v-model="searchQuery"
-          :placeholder="$t('payments.search_student')"
+          :placeholder="$t('payments.search_payee')"
           class="form-input"
         />
       </div>
@@ -41,7 +41,7 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>{{ $t('stats.student') }}</th>
+              <th>{{ $t('payments.col_student_teacher') }}</th>
               <th>{{ $t('stats.group') }}</th>
               <th>{{ $t('payments.col_amount') }}</th>
               <th>{{ $t('payments.col_method') }}</th>
@@ -54,7 +54,25 @@
           <tbody>
             <tr v-for="payment in filteredPayments" :key="payment.id" class="table-row" :style="!payment.is_active || payment.status === 'canceled' ? 'opacity: 0.65; background-color: #f8fafc;' : ''">
               <td class="font-mono text-muted">#{{ payment.id }}</td>
-              <td class="font-semibold">{{ getStudentName(payment.student) }}</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <template v-if="payment.student">
+                    <span class="font-semibold">{{ getStudentName(payment.student) }}</span>
+                    <span class="status-badge enrolled" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; text-transform: uppercase;">
+                      {{ $t('payments.badge_student') }}
+                    </span>
+                  </template>
+                  <template v-else-if="payment.teacher">
+                    <span class="font-semibold">{{ getTeacherName(payment.teacher) }}</span>
+                    <span class="status-badge" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; text-transform: uppercase; background-color: #e0f2fe; color: #0369a1;">
+                      {{ $t('payments.badge_teacher') }}
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="font-semibold" style="color: #94a3b8;">-</span>
+                  </template>
+                </div>
+              </td>
               <td>{{ getGroupName(payment.group) }}</td>
               <td class="font-mono font-semibold text-green" :style="!payment.is_active || payment.status === 'canceled' ? 'text-decoration: line-through; color: #94a3b8 !important;' : ''">{{ formatPrice(payment.amount) }} UZS</td>
               <td>
@@ -120,10 +138,10 @@
             </p>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label">{{ $t('stats.student') }}</label>
+              <label class="form-label">{{ $t('payments.col_student_teacher') }}</label>
               <input
                 type="text"
-                :value="getStudentName(selectedPaymentForCancel.student)"
+                :value="selectedPaymentForCancel.student ? getStudentName(selectedPaymentForCancel.student) : getTeacherName(selectedPaymentForCancel.teacher)"
                 disabled
                 class="form-input"
                 style="background-color: #f1f5f9; cursor: not-allowed;"
@@ -200,6 +218,7 @@ export default {
       payments: [],
       students: [],
       groups: [],
+      users: [],
       searchQuery: '',
       selectedGroup: '',
       loading: false,
@@ -222,8 +241,12 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase().trim()
         list = list.filter(p => {
-          const name = this.getStudentName(p.student).toLowerCase()
-          return name.includes(query)
+          if (p.student) {
+            return this.getStudentName(p.student).toLowerCase().includes(query)
+          } else if (p.teacher) {
+            return this.getTeacherName(p.teacher).toLowerCase().includes(query)
+          }
+          return false
         })
       }
       
@@ -244,14 +267,16 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [paymentsRes, studentsRes, groupsRes] = await Promise.all([
+        const [paymentsRes, studentsRes, groupsRes, usersRes] = await Promise.all([
           axios.get('/api/payments/'),
           axios.get('/api/students/'),
-          axios.get('/api/groups/')
+          axios.get('/api/groups/'),
+          axios.get('/api/users/')
         ])
         this.payments = paymentsRes.data
         this.students = studentsRes.data
         this.groups = groupsRes.data
+        this.users = usersRes.data
         this.loading = false
       } catch (err) {
         console.error('Error fetching payments:', err)
@@ -262,6 +287,10 @@ export default {
     getStudentName(studentId) {
       const student = this.students.find(s => s.id === studentId)
       return student ? student.full_name : `Student #${studentId}`
+    },
+    getTeacherName(teacherId) {
+      const user = this.users.find(u => u.id === teacherId)
+      return user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : `Teacher #${teacherId}`
     },
     getGroupName(groupId) {
       const group = this.groups.find(g => g.id === groupId)

@@ -5,7 +5,7 @@ import i18n from './i18n'
 import axios from 'axios'
 
 // Centralized API Base URL configuration
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || ''
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const app = createApp(App)
 app.use(router)

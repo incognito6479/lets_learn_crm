@@ -7,6 +7,14 @@
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;">
         <div class="badge-count" v-if="groups.length">{{ $t('common.total') }}: {{ groups.length }}</div>
+        <button v-if="userRole !== 'teacher'" @click="openImportModal" class="btn btn-secondary" style="background-color: #4b5563; border-color: #4b5563; color: white;">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          {{ $t('groups.import_btn') }}
+        </button>
         <button v-if="userRole !== 'teacher'" @click="openCreateModal" class="btn btn-primary">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -253,7 +261,21 @@
                   <option value="Everyday">{{ $t('groups.Everyday') }}</option>
                 </select>
               </div>
- 
+
+              <div class="form-group">
+                <label for="teacherShare" class="form-label">{{ $t('groups.form_teacher_share') }}</label>
+                <input
+                  type="number"
+                  id="teacherShare"
+                  v-model.number="form.teacher_share"
+                  required
+                  min="0"
+                  max="100"
+                  class="form-input"
+                />
+              </div>
+            </div>
+            <div class="modal-form-grid">
               <div class="form-group">
                 <label for="groupStatus" class="form-label">{{ $t('common.status') }}</label>
                 <select id="groupStatus" v-model="form.status" required class="form-input">
@@ -285,6 +307,96 @@
         </form>
       </div>
     </div>
+
+    <!-- Import Excel Modal -->
+    <div v-if="showImportModal" class="modal-backdrop" @click.self="closeImportModal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h2 class="modal-title">{{ $t('groups.import_modal_title') }}</h2>
+          <button @click="closeImportModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem 0;">
+          <p class="modal-instructions" style="margin-bottom: 1.5rem; color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; text-align: left;">
+            {{ $t('groups.import_instructions') }}
+          </p>
+
+          <!-- Import Options Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; text-align: left;">
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label class="form-label" style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1;">{{ $t('groups.import_month') }}</label>
+              <select v-model="importMonth" class="form-input" style="width: 100%; box-sizing: border-box; background-color: #1e293b; color: white;">
+                <option v-for="m in 12" :key="m" :value="m">
+                  {{ getLocalizedMonthName(m - 1) }}
+                </option>
+              </select>
+            </div>
+            
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <label class="form-label" style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1;">{{ $t('groups.import_year') }}</label>
+              <select v-model="importYear" class="form-input" style="width: 100%; box-sizing: border-box; background-color: #1e293b; color: white;">
+                <option v-for="y in importYearRange" :key="y" :value="y">
+                  {{ y }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem; text-align: left;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1;">{{ $t('groups.import_price') }}</label>
+            <input
+              type="text"
+              inputmode="numeric"
+              v-model="importPriceRaw"
+              @input="formatImportPriceInput"
+              required
+              class="form-input"
+              style="width: 100%; box-sizing: border-box; background-color: #1e293b; color: white;"
+            />
+          </div>
+          
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #4b5563; border-radius: 8px; padding: 2rem; background-color: #0f172a; transition: all 0.2s;">
+            <svg style="width: 3rem; height: 3rem; color: #94a3b8; margin-bottom: 1rem;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <input 
+              type="file" 
+              ref="excelFileInput" 
+              accept=".xlsx, .xls" 
+              style="display: none;" 
+              @change="handleFileChange"
+            />
+            <button 
+              type="button" 
+              @click="$refs.excelFileInput.click()" 
+              class="btn btn-secondary" 
+              style="background-color: #334155; color: white;"
+            >
+              {{ selectedFile ? selectedFile.name : $t('groups.import_select_file') }}
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid #334155;">
+          <button type="button" @click="closeImportModal" class="btn btn-secondary">{{ $t('groups.import_close') }}</button>
+          <button 
+            type="button" 
+            @click="submitImport" 
+            class="btn btn-primary" 
+            :disabled="importing || !selectedFile"
+          >
+            {{ importing ? $t('groups.import_submitting') : $t('groups.import_btn') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -314,6 +426,14 @@ export default {
       submitting: false,
       userRole: localStorage.getItem('user_role') || '',
       userId: parseInt(localStorage.getItem('user_id')) || null,
+      
+      // Import controls
+      showImportModal: false,
+      selectedFile: null,
+      importing: false,
+      importMonth: new Date().getMonth() + 1,
+      importYear: new Date().getFullYear(),
+      importPriceRaw: '450 000',
       form: {
         id: null,
         name: '',
@@ -327,6 +447,7 @@ export default {
         price: '',
         status: 'ongoing',
         group_days_at: 'Mon-Wed-Fri',
+        teacher_share: 50,
         description: ''
       }
     }
@@ -356,6 +477,10 @@ export default {
     filteredRooms() {
       if (!this.form.branch) return []
       return this.rooms.filter(r => r.branch === this.form.branch)
+    },
+    importYearRange() {
+      const cy = new Date().getFullYear()
+      return [cy - 2, cy - 1, cy, cy + 1, cy + 2]
     }
   },
   mounted() {
@@ -424,13 +549,7 @@ export default {
       }
     },
     handleCourseChange() {
-      if (this.form.course) {
-        const selectedCourse = this.courses.find(c => c.id === this.form.course)
-        if (selectedCourse && selectedCourse.price) {
-          const digits = Math.round(parseFloat(selectedCourse.price)).toString()
-          this.form.price = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-        }
-      }
+      // Do not auto-fill group price with course price
     },
     openCreateModal() {
       this.isEdit = false
@@ -447,6 +566,7 @@ export default {
         price: '',
         status: 'ongoing',
         group_days_at: 'Mon-Wed-Fri',
+        teacher_share: 50,
         description: ''
       }
       this.showModal = true
@@ -466,6 +586,7 @@ export default {
         price: group.price,
         status: group.status || 'ongoing',
         group_days_at: group.group_days_at || 'Mon-Wed-Fri',
+        teacher_share: group.teacher_share || 50,
         description: group.description || ''
       }
       if (this.form.price) {
@@ -544,6 +665,77 @@ export default {
       if (!price && price !== 0) return '0'
       const val = Math.round(parseFloat(price))
       return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    },
+    openImportModal() {
+      this.selectedFile = null
+      this.importMonth = new Date().getMonth() + 1
+      this.importYear = new Date().getFullYear()
+      this.importPriceRaw = '450 000'
+      this.showImportModal = true
+    },
+    closeImportModal() {
+      this.showImportModal = false
+      this.selectedFile = null
+      this.importing = false
+    },
+    handleFileChange(event) {
+      const files = event.target.files
+      if (files.length > 0) {
+        this.selectedFile = files[0]
+      }
+    },
+    getLocalizedMonthName(monthIdx) {
+      const date = new Date(2026, monthIdx, 1)
+      const locale = this.$i18n.locale === 'uz' ? 'uz-UZ' : 'ru-RU'
+      return date.toLocaleDateString(locale, { month: 'long' })
+    },
+    formatImportPriceInput(event) {
+      const selectionStart = event.target.selectionStart
+      const value = event.target.value
+      const oldLength = value.length
+      
+      const digits = value.replace(/\D/g, '')
+      const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      
+      this.importPriceRaw = formatted
+      
+      this.$nextTick(() => {
+        if (event.target) {
+          const newLength = formatted.length
+          const delta = newLength - oldLength
+          const newCursorPos = selectionStart + delta
+          event.target.setSelectionRange(newCursorPos, newCursorPos)
+        }
+      })
+    },
+    async submitImport() {
+      if (!this.selectedFile) return
+      this.importing = true
+      const formData = new FormData()
+      formData.append('file', this.selectedFile)
+      formData.append('month', this.importMonth)
+      formData.append('year', this.importYear)
+      
+      const parsedPrice = parseFloat(this.importPriceRaw.replace(/\s/g, '')) || 450000
+      formData.append('price', parsedPrice)
+      
+      try {
+        const response = await axios.post('/api/groups/import-excel/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        
+        alert(this.$t('groups.import_success') + `\n\n- Groups: ${response.data.imported_groups.join(', ')}\n- Students: ${response.data.total_students}\n- Payments: ${response.data.total_payments}\n- Absences: ${response.data.total_absences}`)
+        
+        this.closeImportModal()
+        this.fetchData()
+      } catch (err) {
+        console.error('Error importing Excel:', err)
+        alert(err.response?.data?.detail || err.response?.data?.message || 'Error importing file.')
+      } finally {
+        this.importing = false
+      }
     }
   }
 }

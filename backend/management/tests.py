@@ -354,3 +354,266 @@ class APIOperationsTest(APITestCase):
         self.client.force_authenticate(user=cashier)
         response = self.client.get('/api/grades/')
         self.assertEqual(response.status_code, 403)
+
+    def test_teacher_share_and_payouts_calculation(self):
+        # Create a group specifically for this test
+        group = Group.objects.create(
+            name="Payout Group",
+            course=self.course,
+            teacher=self.teacher,
+            room=self.room,
+            branch=self.branch,
+            price=Decimal('100000.00'),
+            starts_at='10:00:00',
+            duration=90,
+            started_at=timezone.localdate(),
+            status='ongoing',
+            group_days_at='Mon-Wed-Fri',
+            teacher_share=40
+        )
+
+        # Enroll the student in this group
+        Enrollment.objects.create(
+            student=self.student,
+            group=group,
+            status='enrolled'
+        )
+
+        Payment.objects.create(
+            group=group,
+            student=self.student,
+            amount=Decimal('100000.00'),
+            payment_method='cash',
+            status='accepted'
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(f'/api/groups/{group.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['teacher_earnings'], 40000.00)
+        self.assertEqual(response.data['teacher_paid'], 0.00)
+        self.assertEqual(response.data['teacher_remaining'], 40000.00)
+
+        Payment.objects.create(
+            group=group,
+            student=None,
+            teacher=self.teacher,
+            amount=Decimal('15000.00'),
+            payment_method='cash',
+            status='accepted'
+        )
+
+        response = self.client.get(f'/api/groups/{group.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['teacher_earnings'], 40000.00)
+        self.assertEqual(response.data['teacher_paid'], 15000.00)
+        self.assertEqual(response.data['teacher_remaining'], 25000.00)
+
+    def test_excel_group_import(self):
+        import io
+        import openpyxl
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from openpyxl.styles import Font
+
+        # Create mock excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Tues 900"
+
+        # Headers
+        ws.cell(row=2, column=1, value="№")
+        ws.cell(row=2, column=2, value="ФИО")
+        ws.cell(row=2, column=3, value="дата оплаты")
+        ws.cell(row=2, column=35, value="ИТОГ")
+        ws.cell(row=2, column=36, value="примечание")
+        ws.cell(row=2, column=37, value="телефон")
+
+        # Row 3: student 1 - Amirshox, date: 24 iyun, total: 450, note: 450 (debt - red text), phone: 93 727 70 07
+        ws.cell(row=3, column=1, value=1)
+        ws.cell(row=3, column=2, value="Amirshox Davronov")
+        ws.cell(row=3, column=3, value="24 iyun")
+        ws.cell(row=3, column=4, value="-") # day 1 absence
+        ws.cell(row=3, column=35, value=450)
+        ws.cell(row=3, column=37, value="93 727 70 07")
+        
+        red_font = Font(color="FFFF0000")
+        ws.cell(row=3, column=36, value=450).font = red_font
+
+        # Row 4: student 2 - Timur, date: 16/Jun, total: 0, note: 450 (overpaid - green text), phone: 88 287 17 72
+        ws.cell(row=4, column=1, value=2)
+        ws.cell(row=4, column=2, value="Timur Mustafoev")
+        ws.cell(row=4, column=3, value="16/Jun")
+        ws.cell(row=4, column=35, value=0)
+        ws.cell(row=4, column=37, value="88 287 17 72")
+        
+        green_font = Font(color="FF00FF00")
+        ws.cell(row=4, column=36, value=450).font = green_font
+
+        # Row 5: ОБЩИЙ ИТОГ (stops loop)
+        ws.cell(row=5, column=2, value="ОБЩИЙ ИТОГ")
+
+        # Save workbook to memory
+        excel_buffer = io.BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+
+        uploaded_file = SimpleUploadedFile(
+            name="Kadir_K.xlsx",
+            content=excel_buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post('/api/groups/import-excel/', {
+            'file': uploaded_file,
+            'month': 7,
+            'year': 2026,
+            'price': 450000.00
+        }, format='multipart')
+        self.assertEqual(response.status_code, 200)
+
+        # Check response details
+        self.assertEqual(response.data['status'], 'success')
+        self.assertIn('Kadir K - Tues 900', response.data['imported_groups'])
+
+        # Verify database objects created
+        # 1. Teacher User
+        teacher = User.objects.get(username="kadir_k")
+        self.assertEqual(teacher.first_name, "Kadir K")
+        self.assertEqual(teacher.role, "teacher")
+
+        # 2. Group
+        group = Group.objects.get(name="Kadir K - Tues 900")
+        self.assertEqual(group.teacher, teacher)
+        self.assertEqual(group.group_days_at, "Tue-Thur-Sat")
+        self.assertEqual(group.starts_at.hour, 9)
+
+        # 3. Students
+        s1 = Student.objects.get(full_name="Amirshox Davronov")
+        self.assertEqual(s1.phone1, "+998937277007")
+
+        s2 = Student.objects.get(full_name="Timur Mustafoev")
+        self.assertEqual(s2.phone1, "+998882871772")
+
+        # 4. Enrollments
+        e1 = Enrollment.objects.get(student=s1, group=group)
+        self.assertEqual(e1.date.month, 6)
+        self.assertEqual(e1.date.day, 24)
+
+        e2 = Enrollment.objects.get(student=s2, group=group)
+        self.assertEqual(e2.date.month, 6)
+        self.assertEqual(e2.date.day, 16)
+
+        # 5. Payments
+        p1 = Payment.objects.filter(student=s1, group=group, amount=450000.00).count()
+        self.assertEqual(p1, 2)
+
+        p2 = Payment.objects.filter(student=s2, group=group, amount=450000.00).count()
+        self.assertEqual(p2, 2)
+
+        # 6. Absences
+        absences = Absence.objects.filter(student=s1, group=group)
+        self.assertEqual(absences.count(), 1)
+        self.assertEqual(absences.first().date.day, 1)
+
+    def test_admin_branch_filtering(self):
+        # Create Branch B
+        branch_b = Branch.objects.create(name="Branch B")
+
+        # Create Admin user linked to Branch A (self.branch)
+        admin_a = User.objects.create_user(
+            username="admin_a",
+            first_name="Admin A",
+            password="adminpassword",
+            role="admin",
+            branch=self.branch
+        )
+
+        # Create Group A (Branch A) and Group B (Branch B)
+        group_a = Group.objects.create(
+            name="Group A",
+            starts_at="10:00:00",
+            duration=90,
+            started_at=timezone.localdate(),
+            branch=self.branch,
+            status="ongoing"
+        )
+        group_b = Group.objects.create(
+            name="Group B",
+            starts_at="10:00:00",
+            duration=90,
+            started_at=timezone.localdate(),
+            branch=branch_b,
+            status="ongoing"
+        )
+
+        # Create Teachers
+        teacher_a = User.objects.create_user(
+            username="teacher_a",
+            first_name="Teacher A",
+            password="pwd",
+            role="teacher",
+            branch=self.branch
+        )
+        teacher_b = User.objects.create_user(
+            username="teacher_b",
+            first_name="Teacher B",
+            password="pwd",
+            role="teacher",
+            branch=branch_b
+        )
+
+        # Create Students
+        student_a = Student.objects.create(full_name="Student A", phone1="998900000001")
+        student_b = Student.objects.create(full_name="Student B", phone1="998900000002")
+
+        # Enrollments
+        Enrollment.objects.create(student=student_a, group=group_a)
+        Enrollment.objects.create(student=student_b, group=group_b)
+
+        # Payments
+        payment_a = Payment.objects.create(
+            group=group_a,
+            student=student_a,
+            amount=Decimal("10000.00"),
+            payment_method="cash",
+            status="accepted"
+        )
+        payment_b = Payment.objects.create(
+            group=group_b,
+            student=student_b,
+            amount=Decimal("20000.00"),
+            payment_method="cash",
+            status="accepted"
+        )
+
+        # Authenticate as admin_a (Branch A admin)
+        self.client.force_authenticate(user=admin_a)
+
+        # 1. Verify Group filtering
+        response = self.client.get('/api/groups/')
+        self.assertEqual(response.status_code, 200)
+        group_names = [g['name'] for g in response.data]
+        self.assertIn("Group A", group_names)
+        self.assertNotIn("Group B", group_names)
+
+        # 2. Verify Teacher/User filtering
+        response = self.client.get('/api/users/')
+        self.assertEqual(response.status_code, 200)
+        teacher_names = [u['first_name'] for u in response.data]
+        self.assertIn("Teacher A", teacher_names)
+        self.assertNotIn("Teacher B", teacher_names)
+
+        # 3. Verify Student filtering
+        response = self.client.get('/api/students/')
+        self.assertEqual(response.status_code, 200)
+        student_names = [s['full_name'] for s in response.data]
+        self.assertIn("Student A", student_names)
+        self.assertNotIn("Student B", student_names)
+
+        # 4. Verify Payment filtering
+        response = self.client.get('/api/payments/')
+        self.assertEqual(response.status_code, 200)
+        payment_amounts = [float(p['amount']) for p in response.data]
+        self.assertIn(10000.00, payment_amounts)
+        self.assertNotIn(20000.00, payment_amounts)
