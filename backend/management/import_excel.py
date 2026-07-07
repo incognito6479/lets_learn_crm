@@ -145,8 +145,8 @@ def run_import_excel(excel_file, month_param=None, year_param=None, price_param=
                 # Find or create Student, setting/updating numbers
                 student, created = Student.objects.get_or_create(
                     full_name=student_name,
+                    phone1 =  phone1_str,
                     defaults={
-                        'phone1': phone1_str,
                         'phone2': phone2_str
                     }
                 )
@@ -157,21 +157,29 @@ def run_import_excel(excel_file, month_param=None, year_param=None, price_param=
                     student.save()
                 total_students_imported += 1
 
-                # Create Enrollment (exclude student if yellow background detected)
-                enrollment = Enrollment.objects.create(
+                # Find or create Enrollment (exclude student if yellow background detected)
+                enrollment, enrolled_created = Enrollment.objects.get_or_create(
                     student=student,
                     group=group,
-                    date=enrollment_date,
-                    status='dropped' if is_dropped else 'enrolled',
-                    enrolled_free=is_free
+                    defaults={
+                        'date': enrollment_date,
+                        'status': 'dropped' if is_dropped else 'enrolled',
+                        'enrolled_free': is_free
+                    }
                 )
+                if not enrolled_created:
+                    enrollment.date = enrollment_date
+                    enrollment.status = 'dropped' if is_dropped else 'enrolled'
+                    enrollment.enrolled_free = is_free
+                    enrollment.save()
 
                 # Read total paid current month from Col AI (35)
                 total_paid_current = 0.0
                 if not is_free:
                     paid_val = sheet.cell(row=r_idx, column=35).value
                     try:
-                        total_paid_current = float(paid_val or 0) * 1000
+                        val = float(paid_val or 0)
+                        total_paid_current = val * 1000 if val < 10000 else val
                     except (ValueError, TypeError):
                         total_paid_current = 0.0
 
@@ -194,12 +202,14 @@ def run_import_excel(excel_file, month_param=None, year_param=None, price_param=
                 if not is_free and note_val is not None and str(note_val).strip() != "":
                     if is_red:
                         try:
-                            debt_val = float(note_val) * 1000
+                            val = float(note_val)
+                            debt_val = val * 1000 if val < 10000 else val
                         except (ValueError, TypeError):
                             debt_val = 0.0
                     elif is_green:
                         try:
-                            overpaid_val = float(note_val) * 1000
+                            val = float(note_val)
+                            overpaid_val = val * 1000 if val < 10000 else val
                         except (ValueError, TypeError):
                             overpaid_val = 0.0
 
