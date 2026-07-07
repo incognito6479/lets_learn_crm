@@ -54,6 +54,32 @@
               <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">{{ $t('teachers.col_status') }}</span>
               <span class="field-value" style="font-size: 1rem; color: #1e293b; font-weight: 500; text-transform: capitalize;">{{ teacher.role === 'teacher' ? $t('groupDetail.teacher') : teacher.role }}</span>
             </div>
+            <div class="info-field">
+              <span class="field-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">{{ $t('teacherDetail.monthly_income') }}</span>
+              <span class="field-value font-mono font-semibold" style="font-size: 1.1rem; color: #16a34a; font-weight: 700;">{{ formatPrice(currentMonthIncome) }} UZS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Notifications Alert -->
+      <div v-if="pendingNotifications.length" class="detail-card glass-panel" style="background: #fffbeb; border-radius: 16px; border: 1px solid #fde68a; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden;">
+        <div class="panel-header" style="padding: 1.25rem; border-bottom: 1px solid #fde68a; display: flex; align-items: center; gap: 0.5rem; background-color: #fef3c7;">
+          <svg style="width: 20px; height: 20px; color: #b45309;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #b45309;">
+            {{ $t('teacherDetail.pending_notifications') }} ({{ pendingNotifications.length }})
+          </h3>
+        </div>
+        <div class="panel-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          <div v-for="notif in pendingNotifications" :key="notif.id" style="background: white; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); text-align: left;">
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">{{ getLocalizedTitle(notif) }}</div>
+              <div style="font-size: 0.875rem; color: #64748b;">{{ notif.message }}</div>
+            </div>
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: monospace;">{{ formatDate(notif.created_at) }}</div>
           </div>
         </div>
       </div>
@@ -129,6 +155,8 @@ export default {
       courses: [],
       branches: [],
       rooms: [],
+      payments: [],
+      notifications: [],
       loading: false,
       error: null
     }
@@ -137,6 +165,25 @@ export default {
     teacherGroups() {
       if (!this.teacher) return []
       return this.groups.filter(g => g.teacher === this.teacher.id)
+    },
+    currentMonthIncome() {
+      if (!this.payments || !this.teacher) return 0
+      const now = new Date()
+      const currentYear = now.getFullYear()
+      const currentMonth = now.getMonth()
+      return this.payments
+        .filter(p => {
+          if (p.status !== 'accepted') return false
+          const pDate = new Date(p.payment_date)
+          return pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
+        })
+        .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+    },
+    pendingNotifications() {
+      if (!this.notifications) return []
+      return this.notifications.filter(
+        n => n.notification_type === 'payment_pending' && !this.isPayoutAccepted(n)
+      )
     }
   },
   mounted() {
@@ -149,12 +196,14 @@ export default {
       const teacherId = this.$route.params.id
 
       try {
-        const [teacherRes, groupsRes, coursesRes, branchesRes, roomsRes] = await Promise.all([
+        const [teacherRes, groupsRes, coursesRes, branchesRes, roomsRes, paymentsRes, notificationsRes] = await Promise.all([
           axios.get(`/api/users/${teacherId}/`),
           axios.get('/api/groups/'),
           axios.get('/api/courses/'),
           axios.get('/api/branches/'),
-          axios.get('/api/rooms/')
+          axios.get('/api/rooms/'),
+          axios.get(`/api/users/${teacherId}/payments/`),
+          axios.get(`/api/notifications/?recipient=${teacherId}`)
         ])
 
         this.teacher = teacherRes.data
@@ -162,6 +211,8 @@ export default {
         this.courses = coursesRes.data
         this.branches = branchesRes.data
         this.rooms = roomsRes.data
+        this.payments = paymentsRes.data
+        this.notifications = notificationsRes.data
       } catch (err) {
         console.error('Error loading teacher details:', err)
         this.error = this.$t('stats.api_error')
@@ -198,6 +249,35 @@ export default {
       if (!price) return '0'
       const num = parseFloat(price)
       return num.toLocaleString('fr-FR') // Space separated thousands
+    },
+    isPayoutAccepted(notif) {
+      return notif.title && notif.title.includes('Payout Confirmed')
+    },
+    getLocalizedTitle(notif) {
+      const match = notif.title.match(/#(\d+)/)
+      const suffix = match ? ` #${match[1]}` : ''
+      if (notif.notification_type === 'absence') {
+        return this.$t('notifications.absence_title') + suffix
+      } else if (notif.notification_type === 'payment_pending') {
+        if (this.isPayoutAccepted(notif)) {
+          return this.$t('notifications.payment_accepted_title') + suffix
+        }
+        return this.$t('notifications.payment_pending_title') + suffix
+      } else if (notif.notification_type === 'payment_accepted') {
+        return this.$t('notifications.payment_accepted_title') + suffix
+      }
+      return notif.title
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '-'
+      const date = new Date(dateStr)
+      return date.toLocaleString(this.$i18n.locale === 'ru' ? 'ru-RU' : 'uz-UZ', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
   }
 }

@@ -22,13 +22,20 @@
           {{ $t('groups.status_' + (group.status || 'ongoing')) }}
         </span>
         <button 
-          v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0"
+          v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0 && !hasPendingTeacherPayout"
           @click="openTeacherPayoutModal" 
           class="btn btn-primary"
           style="background-color: #3b82f6;"
         >
           {{ $t('groupDetail.pay_teacher') }}
         </button>
+        <span 
+          v-else-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0 && hasPendingTeacherPayout"
+          class="badge" 
+          style="background-color: #fffbeb; color: #b45309; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; border: 1px solid #fef08a;"
+        >
+          ⚠️ {{ $t('groupDetail.payout_pending_info') }}
+        </span>
         <button 
           v-if="group.status !== 'finished' && userRole !== 'teacher'"
           @click="confirmFinishGroup" 
@@ -135,7 +142,7 @@
             </div>
 
             <button 
-              v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0"
+              v-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0 && !hasPendingTeacherPayout"
               @click="openTeacherPayoutModal" 
               class="btn btn-primary"
               style="width: 100%; padding: 0.75rem; font-weight: 600; font-size: 0.95rem; background-color: #3b82f6; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
@@ -147,6 +154,12 @@
               </svg>
               {{ $t('groupDetail.pay_teacher') }}
             </button>
+            <div 
+              v-else-if="group.status !== 'finished' && userRole !== 'teacher' && group.teacher_remaining > 0 && hasPendingTeacherPayout"
+              style="padding: 0.75rem; border-radius: 8px; background-color: #fffbeb; border: 1px solid #fef08a; color: #b45309; font-weight: 600; font-size: 0.875rem; text-align: center;"
+            >
+              ⚠️ {{ $t('groupDetail.payout_pending_info') }}
+            </div>
           </div>
         </div>
       </div>
@@ -761,6 +774,7 @@ export default {
       userId: parseInt(localStorage.getItem('user_id')) || null,
       grades: [],
       absences: [],
+      payments: [],
       currentWeekStart: null,
 
       // Enrollment modal state
@@ -810,6 +824,15 @@ export default {
       const tzoffset = (new Date()).getTimezoneOffset() * 60000;
       const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
       return localISOTime;
+    },
+    hasPendingTeacherPayout() {
+      if (!this.group || !this.group.teacher) return false
+      return this.payments.some(p => 
+        p.group === this.group.id &&
+        p.student === null &&
+        p.teacher === this.group.teacher &&
+        p.status === 'pending'
+      )
     },
     weekDays() {
       if (!this.currentWeekStart) return []
@@ -941,7 +964,7 @@ export default {
       this.error = null
       const id = this.$route.params.id
       try {
-        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes, absencesRes] = await Promise.all([
+        const [groupRes, coursesRes, usersRes, roomsRes, branchesRes, studentsRes, enrollmentsRes, gradesRes, absencesRes, paymentsRes] = await Promise.all([
           axios.get(`/api/groups/${id}/`),
           axios.get('/api/courses/'),
           axios.get('/api/users/'),
@@ -950,7 +973,8 @@ export default {
           axios.get('/api/students/'),
           axios.get('/api/enrollments/'),
           axios.get('/api/grades/'),
-          axios.get('/api/absences/')
+          axios.get('/api/absences/'),
+          axios.get('/api/payments/')
         ])
 
         this.group = groupRes.data
@@ -962,6 +986,7 @@ export default {
         this.enrollments = enrollmentsRes.data
         this.grades = gradesRes.data
         this.absences = absencesRes.data
+        this.payments = paymentsRes.data
 
 
       } catch (err) {

@@ -11,7 +11,7 @@
         @click="markAllAsRead" 
         v-if="hasUnread" 
         class="btn btn-secondary"
-        style="display: flex; align-items: center; gap: 0.5rem;"
+        style="display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem; font-size: 0.95rem; font-weight: 600;"
       >
         ✓ {{ $t('common.markAllRead') || 'Mark all read' }}
       </button>
@@ -66,7 +66,7 @@
           </p>
 
           <!-- Actions -->
-          <div v-if="notif.notification_type === 'payment_pending' && !notif.is_read" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center;">
+          <div v-if="notif.notification_type === 'payment_pending' && !isPayoutAccepted(notif)" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center;">
             <button 
               @click="confirmPayout(notif)" 
               class="btn btn-primary" 
@@ -145,6 +145,9 @@ export default {
         this.loading = false
       }
     },
+    isPayoutAccepted(notif) {
+      return notif.title && notif.title.includes('Payout Confirmed')
+    },
     getCardStyle(notif) {
       if (!notif.is_read) {
         const colorMap = {
@@ -163,13 +166,17 @@ export default {
       }
     },
     getIconStyle(notif) {
+      let type = notif.notification_type
+      if (type === 'payment_pending' && this.isPayoutAccepted(notif)) {
+        type = 'payment_accepted'
+      }
       const colorMap = {
         absence: '#f97316',
         payment_pending: '#f59e0b',
         payment_accepted: '#10b981'
       }
       return {
-        color: colorMap[notif.notification_type] || '#6366f1'
+        color: colorMap[type] || '#6366f1'
       }
     },
     getLocalizedTitle(notif) {
@@ -178,6 +185,9 @@ export default {
       if (notif.notification_type === 'absence') {
         return this.$t('notifications.absence_title') + suffix
       } else if (notif.notification_type === 'payment_pending') {
+        if (this.isPayoutAccepted(notif)) {
+          return this.$t('notifications.payment_accepted_title') + suffix
+        }
         return this.$t('notifications.payment_pending_title') + suffix
       } else if (notif.notification_type === 'payment_accepted') {
         return this.$t('notifications.payment_accepted_title') + suffix

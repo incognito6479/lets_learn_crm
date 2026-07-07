@@ -117,6 +117,27 @@
           <span>{{ $t('stats.income_collected') }}</span>
         </div>
       </div>
+
+      <!-- Current Month Teacher Paid Card (Non-clickable) -->
+      <div class="stat-card card-teal non-clickable">
+        <div class="card-content">
+          <div class="card-info">
+            <span class="card-label">{{ $t('stats.teacher_payouts') }}</span>
+            <h2 class="card-value" v-if="!loading">{{ formatPrice(currentMonthTeacherPaid) }} UZS</h2>
+            <div class="spinner-small" v-else></div>
+          </div>
+          <div class="card-icon-wrapper">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="12" y1="10" x2="12" y2="14"></line>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>{{ $t('stats.payouts_confirmed_month') }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -135,6 +156,7 @@ export default {
       debtStudentsCount: 0,
       activeGroupsCount: 0,
       currentMonthIncome: 0,
+      currentMonthTeacherPaid: 0,
       loading: false,
       error: null
     }
@@ -171,7 +193,14 @@ export default {
           const pDate = new Date(p.payment_date)
           return p.is_active && p.status === 'accepted' && pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
         })
-        this.currentMonthIncome = currentMonthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+        
+        // Only student tuition payments go to currentMonthIncome
+        const currentMonthIncomePayments = currentMonthPayments.filter(p => p.student !== null)
+        this.currentMonthIncome = currentMonthIncomePayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+
+        // Only teacher payouts go to currentMonthTeacherPaid
+        const currentMonthTeacherPayments = currentMonthPayments.filter(p => p.student === null && p.teacher !== null)
+        this.currentMonthTeacherPaid = currentMonthTeacherPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
 
         // Filter active debt enrollments
         const activeDebtEnrollments = enrollmentsRes.data.filter(
@@ -368,6 +397,22 @@ export default {
 }
 .card-orange .card-footer {
   color: #f97316;
+}
+
+.card-teal .card-icon-wrapper {
+  background-color: rgba(13, 148, 136, 0.08);
+  color: #0d9488;
+}
+.card-teal:hover .card-icon-wrapper {
+  background-color: #0d9488;
+  color: white;
+}
+.card-teal .card-footer {
+  color: #0d9488;
+}
+.card-teal.non-clickable:hover .card-icon-wrapper {
+  background-color: rgba(13, 148, 136, 0.08) !important;
+  color: #0d9488 !important;
 }
 
 .stat-card.non-clickable {

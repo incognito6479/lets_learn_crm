@@ -522,42 +522,4 @@ select.form-input:focus {
    Notification Button
    ============================================= */
 
-.notification-container {
-  position: relative;
-  display: inline-block;
-}
 
-.notif-yellow-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.75rem;
-  border-radius: 6px;
-  background-color: #fef9c3; /* Light yellow background */
-  border: 1px solid #fef08a; /* Soft yellow border */
-  color: #854d0e; /* Muted dark gold text/icon */
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.notif-yellow-btn:hover {
-  background-color: #fef08a;
-  border-color: #fde047;
-  color: #713f12;
-}
-
-.notif-bell-icon {
-  width: 22px;
-  height: 22px;
-  color: #ca8a04; /* Yellow-gold stroke */
-  fill: #fde047; /* Bright yellow fill */
-}
-
-.notif-yellow-count {
-  color: #ef4444; /* Red count text */
-  font-size: 0.95rem;
-  font-weight: 800;
-  margin-left: 0.15rem;
-}

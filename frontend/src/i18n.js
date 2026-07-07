@@ -88,6 +88,8 @@ const translations = {
       view_teachers: "Посмотреть всех преподавателей →",
       view_groups: "Посмотреть текущие группы →",
       students_in_debt: "{count} должников →",
+      teacher_payouts: "Выплаты преподавателям за месяц",
+      payouts_confirmed_month: "выплаты, подтвержденные в этом месяце",
       api_error: "Не удалось получить данные с сервера."
     },
     groups: {
@@ -232,7 +234,8 @@ const translations = {
       teacher_remaining: "Осталось выплатить",
       pay_teacher: "Выплатить преподавателю",
       pay_teacher_modal_title: "Оформить выплату преподавателю",
-      payout_success_info: "Выплата успешно оформлена. Преподавателю необходимо подтвердить получение платежа в своем личном кабинете."
+      payout_success_info: "Выплата успешно оформлена. Преподавателю необходимо подтвердить получение платежа в своем личном кабинете.",
+      payout_pending_info: "Преподавателю необходимо подтвердить выплату"
     },
     notifications: {
       title: "Уведомления",
@@ -269,6 +272,7 @@ const translations = {
       cancel_modal_instructions: "Вы уверены, что хотите отменить этот платеж?",
       void_payment_btn: "Аннулировать платеж",
       status_accepted: "Принят",
+      status_pending: "Ожидает подтверждения",
       status_canceled: "Отменен",
       error_cancel: "Произошла ошибка при отмене платежа."
     },
@@ -343,7 +347,9 @@ const translations = {
       back: "Назад к преподавателям",
       title: "Профиль преподавателя",
       groups_taught: "Группы, которые он(а) ведет",
-      no_groups: "Этот преподаватель пока не ведет никаких групп."
+      no_groups: "Этот преподаватель пока не ведет никаких групп.",
+      monthly_income: "Доход за текущий месяц (выплачено)",
+      pending_notifications: "Ожидающие подтверждения уведомления"
     },
     rooms: {
       title: "Комнаты",
@@ -511,6 +517,8 @@ const translations = {
       view_teachers: "Barcha o'qituvchilarni ko'rish →",
       view_groups: "Joriy guruhlarni ko'rish →",
       students_in_debt: "{count} ta qarzdor talaba →",
+      teacher_payouts: "O'qituvchilarga oylik to'lovlar",
+      payouts_confirmed_month: "tasdiqlangan to'lovlar",
       api_error: "Serverdan ma'lumotlarni yuklab bo'lmadi."
     },
     groups: {
@@ -655,7 +663,8 @@ const translations = {
       teacher_remaining: "Qolgan to'lov",
       pay_teacher: "O'qituvchiga to'lash",
       pay_teacher_modal_title: "O'qituvchiga to'lovni rasmiylashtirish",
-      payout_success_info: "To'lov muvaffaqiyatli rasmiylashtirildi. O'qituvchi o'z shaxsiy kabinetida to'lov qabul qilinganligini tasdiqlashi kerak."
+      payout_success_info: "To'lov muvaffaqiyatli rasmiylashtirildi. O'qituvchi o'z shaxsiy kabinetida to'lov qabul qilinganligini tasdiqlashi kerak.",
+      payout_pending_info: "O'qituvchi to'lovni tasdiqlashi kerak"
     },
     notifications: {
       title: "Bildirishnomalar",
@@ -692,6 +701,7 @@ const translations = {
       cancel_modal_instructions: "Ushbu to'lovni bekor qilmoqchiligingizga ishonchingiz komilmi?",
       void_payment_btn: "To'lovni bekor qilish",
       status_accepted: "Tasdiqlangan",
+      status_pending: "Kutilmoqda",
       status_canceled: "Bekor qilingan",
       error_cancel: "To'lovni bekor qilishda xatolik yuz berdi."
     },
@@ -766,7 +776,9 @@ const translations = {
       back: "O'qituvchilarga qaytish",
       title: "O'qituvchi profili",
       groups_taught: "Ushbu o'qituvchiga biriktirilgan guruhlar",
-      no_groups: "Ushbu o'qituvchiga hozircha hech qanday guruh biriktirilmagan."
+      no_groups: "Ushbu o'qituvchiga hozircha hech qanday guruh biriktirilmagan.",
+      monthly_income: "Joriy oy uchun daromad (to'langan)",
+      pending_notifications: "Tasdiqlash kutilayotgan bildirishnomalar"
     },
     rooms: {
       title: "Xonalar",

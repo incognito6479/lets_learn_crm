@@ -379,6 +379,11 @@ export default {
   color: #15803d;
 }
 
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
 .status-badge.canceled {
   background-color: #fee2e2;
   color: #991b1b;

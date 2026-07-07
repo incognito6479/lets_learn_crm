@@ -1021,8 +1021,51 @@ body {
   background-color: #4f46e5;
 }
 
+
 .btn-primary-cp:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Notification Button with yellow count in header */
+.notification-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-yellow-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background-color: #fef9c3; /* Light yellow background */
+  border: 1px solid #fef08a; /* Soft yellow border */
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  min-height: 38px;
+  box-sizing: border-box;
+}
+
+.notif-yellow-btn:hover {
+  background-color: #fef08a;
+  border-color: #fde047;
+}
+
+.notif-bell-icon {
+  width: 22px;
+  height: 22px;
+  color: #ca8a04; /* Yellow-gold stroke */
+  fill: #fde047; /* Bright yellow fill */
+  display: block;
+}
+
+.notif-yellow-count {
+  color: #ef4444; /* Red count text */
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin-left: 0.15rem;
 }
 </style>

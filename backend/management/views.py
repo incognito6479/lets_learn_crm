@@ -83,6 +83,13 @@ class UserViewSet(SoftDeleteModelViewSet):
             qs = qs.filter(Q(branch=user.branch) | Q(branch__isnull=True) | Q(group__branch=user.branch)).distinct()
         return qs
 
+    @action(detail=True, methods=['get'], url_path='payments')
+    def get_payments(self, request, pk=None):
+        teacher = self.get_object()
+        payments = Payment.objects.filter(teacher=teacher, student__isnull=True, is_active=True)
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(serializer.data)
+
 class StudentViewSet(SoftDeleteModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
@@ -221,6 +228,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
         payment.status = 'accepted'
         payment.save()
         
+        # Update teacher's pending notification title at the backend
+        Notification.objects.filter(
+            recipient=payment.teacher,
+            notification_type='payment_pending',
+            title=f"Payout Pending Confirmation #{payment.id}"
+        ).update(
+            title=f"Payout Confirmed #{payment.id}"
+        )
+        
         # Notify admins
         admins = User.objects.filter(role='admin')
         for admin in admins:
@@ -276,7 +292,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(recipient=self.request.user, is_active=True).order_by('-created_at')
+        user = self.request.user
+        recipient_id = self.request.query_params.get('recipient')
+        if recipient_id and (user.role in ['admin', 'ceo'] or user.is_superuser):
+            return self.queryset.filter(recipient_id=recipient_id, is_active=True).order_by('-created_at')
+        return self.queryset.filter(recipient=user, is_active=True).order_by('-created_at')
 
     @action(detail=True, methods=['post'], url_path='read')
     def mark_as_read(self, request, pk=None):
