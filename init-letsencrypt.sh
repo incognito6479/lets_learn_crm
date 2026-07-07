@@ -74,7 +74,8 @@ docker compose -f docker-compose.prod.yml run --rm --entrypoint \
     $domain_args \
     --rsa-key-size $rsa_key_size \
     --force-renewal \
-    --non-interactive" certbot
+    --non-interactive" certbot \
+    --test-cert
 
 echo "### Reloading nginx ..."
 docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
