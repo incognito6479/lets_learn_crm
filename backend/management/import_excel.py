@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 from management.models import User, Student, Group, Enrollment, Payment, Absence
-from management.helpers import is_yellow_color, is_green_color, clean_phone_number, parse_enrollment_date
+from management.helpers import is_yellow_color, is_green_color, is_red_color, clean_phone_number, parse_enrollment_date
 
 def run_import_excel(excel_file, month_param=None, year_param=None, price_param=None):
     if not excel_file:
@@ -166,6 +166,43 @@ def run_import_excel(excel_file, month_param=None, year_param=None, price_param=
                     enrolled_free=is_free
                 )
 
+                # Read total paid current month from Col AI (35)
+                total_paid_current = 0.0
+                if not is_free:
+                    paid_val = sheet.cell(row=r_idx, column=35).value
+                    try:
+                        total_paid_current = float(paid_val or 0) * 1000
+                    except (ValueError, TypeError):
+                        total_paid_current = 0.0
+
+                # Check Col AJ (36) for red debt value or green overpayment
+                debt_val = 0.0
+                overpaid_val = 0.0
+                note_cell = sheet.cell(row=r_idx, column=36)
+                note_val = note_cell.value
+                
+                # Check color of note cell
+                color_hex = None
+                if note_cell.font and note_cell.font.color and note_cell.font.color.rgb:
+                    color_hex = note_cell.font.color.rgb
+                if not color_hex and note_cell.fill and note_cell.fill.start_color and note_cell.fill.start_color.rgb:
+                    color_hex = note_cell.fill.start_color.rgb
+
+                is_red = is_red_color(color_hex)
+                is_green = is_green_color(color_hex)
+
+                if not is_free and note_val is not None and str(note_val).strip() != "":
+                    if is_red:
+                        try:
+                            debt_val = float(note_val) * 1000
+                        except (ValueError, TypeError):
+                            debt_val = 0.0
+                    elif is_green:
+                        try:
+                            overpaid_val = float(note_val) * 1000
+                        except (ValueError, TypeError):
+                            overpaid_val = 0.0
+
                 # Auto-generate payments for prior months to mark them as paid (only if not free enrollment)
                 if not is_free:
                     temp_year = enrollment_date.year
@@ -173,77 +210,69 @@ def run_import_excel(excel_file, month_param=None, year_param=None, price_param=
                     target_year = current_year
                     target_month = current_month
 
+                    # Count how many prior months we have
+                    prior_months_dates = []
                     while (temp_year < target_year) or (temp_year == target_year and temp_month < target_month):
-                        pay_day = min(enrollment_date.day, 28)
-                        pay_date = datetime.date(temp_year, temp_month, pay_day)
-                        
-                        Payment.objects.create(
-                            group=group,
-                            student=student,
-                            amount=group_price,
-                            payment_method='cash',
-                            status='accepted',
-                            description=f"Auto-generated payment for prior month: {pay_date.strftime('%B %Y')}",
-                            payment_date=timezone.make_aware(datetime.datetime.combine(pay_date, datetime.time(12, 0)))
-                        )
-                        total_payments_imported += 1
-                        
-                        # Increment month
+                        prior_months_dates.append((temp_year, temp_month))
                         if temp_month == 12:
                             temp_month = 1
                             temp_year += 1
                         else:
                             temp_month += 1
 
-                # Col AI (35): Total paid
-                if not is_free:
-                    paid_val = sheet.cell(row=r_idx, column=35).value
-                    try:
-                        total_paid = float(paid_val or 0) * 1000
-                    except (ValueError, TypeError):
-                        total_paid = 0.0
+                    # Expected amount in total (prior months + current month)
+                    expected_amount = (len(prior_months_dates) + 1) * group_price
+                    # We want total paid to be: expected_amount - debt_val
+                    # So the amount to pay for prior months is: expected_amount - debt_val - total_paid_current
+                    prior_paid_amount = float(expected_amount) - debt_val - total_paid_current
 
-                    if total_paid > 0:
-                        Payment.objects.create(
-                            group=group,
-                            student=student,
-                            amount=Decimal(str(total_paid)),
-                            payment_method='cash',
-                            status='accepted',
-                            description="Imported total paid from Excel sheet"
-                        )
-                        total_payments_imported += 1
-
-                # Col AJ (36): Debt / Overpaid
-                if not is_free:
-                    note_cell = sheet.cell(row=r_idx, column=36)
-                    note_val = note_cell.value
-                    
-                    # Check color
-                    color_hex = None
-                    if note_cell.font and note_cell.font.color and note_cell.font.color.rgb:
-                        color_hex = note_cell.font.color.rgb
-                    if not color_hex and note_cell.fill and note_cell.fill.start_color and note_cell.fill.start_color.rgb:
-                        color_hex = note_cell.fill.start_color.rgb
-                    
-                    is_green = is_green_color(color_hex)
-
-                    if is_green and note_val:
-                        try:
-                            overpaid_val = float(note_val) * 1000
-                        except (ValueError, TypeError):
-                            overpaid_val = 0.0
+                    # Distribute prior_paid_amount across the prior months
+                    for p_year, p_month in prior_months_dates:
+                        pay_amount = 0.0
+                        if prior_paid_amount >= float(group_price):
+                            pay_amount = float(group_price)
+                            prior_paid_amount -= float(group_price)
+                        elif prior_paid_amount > 0:
+                            pay_amount = prior_paid_amount
+                            prior_paid_amount = 0.0
                         
-                        if overpaid_val > 0:
+                        if pay_amount > 0:
+                            pay_day = min(enrollment_date.day, 28)
+                            pay_date = datetime.date(p_year, p_month, pay_day)
                             Payment.objects.create(
                                 group=group,
                                 student=student,
-                                amount=Decimal(str(overpaid_val)),
+                                amount=Decimal(str(pay_amount)),
                                 payment_method='cash',
                                 status='accepted',
-                                description="Imported overpayment from Excel sheet"
+                                description=f"Auto-generated payment for prior month: {pay_date.strftime('%B %Y')}",
+                                payment_date=timezone.make_aware(datetime.datetime.combine(pay_date, datetime.time(12, 0)))
                             )
                             total_payments_imported += 1
+
+                # Create current month payment from Col AI (35)
+                if not is_free and total_paid_current > 0:
+                    Payment.objects.create(
+                        group=group,
+                        student=student,
+                        amount=Decimal(str(total_paid_current)),
+                        payment_method='cash',
+                        status='accepted',
+                        description="Imported total paid from Excel sheet"
+                    )
+                    total_payments_imported += 1
+
+                # Create overpayment payment from Col AJ (36)
+                if not is_free and overpaid_val > 0:
+                    Payment.objects.create(
+                        group=group,
+                        student=student,
+                        amount=Decimal(str(overpaid_val)),
+                        payment_method='cash',
+                        status='accepted',
+                        description="Imported overpayment from Excel sheet"
+                    )
+                    total_payments_imported += 1
 
                 # Recalculate enrollment debt
                 enrollment.check_debt()

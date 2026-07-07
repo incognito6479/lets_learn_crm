@@ -144,10 +144,32 @@ class Enrollment(BaseModel):
             if start_date > today:
                 months_billed = 0
             else:
+                # 1. Anniversary-based months billed
                 months_elapsed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
                 if today.day < start_date.day:
                     months_elapsed -= 1
-                months_billed = max(0, months_elapsed) + 1
+                anniversary_months_billed = max(0, months_elapsed) + 1
+
+                # 2. Maximum calendar month index containing accepted payments
+                payment_dates = Payment.objects.filter(
+                    student=self.student,
+                    group=self.group,
+                    is_active=True,
+                    status='accepted'
+                ).values_list('payment_date', flat=True)
+                
+                max_paid_month_index = 0
+                for p_date in payment_dates:
+                    if p_date:
+                        p_local = timezone.localdate(p_date)
+                        if p_local <= today:
+                            idx = (p_local.year - start_date.year) * 12 + (p_local.month - start_date.month) + 1
+                            if idx > max_paid_month_index:
+                                max_paid_month_index = idx
+                
+                # 3. Months billed is the max of anniversary billing and max paid month index
+                months_billed = max(anniversary_months_billed, max_paid_month_index)
+
             group_price = self.group.price
             expected_amount = months_billed * group_price
             total_paid = Payment.objects.filter(

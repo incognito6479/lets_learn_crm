@@ -39,6 +39,25 @@ def is_green_color(color_hex):
             return False
     return False
 
+def is_red_color(color_hex):
+    if not color_hex or not isinstance(color_hex, str):
+        return False
+    color_clean = color_hex.upper().strip()
+    if color_clean.startswith('#'):
+        color_clean = color_clean[1:]
+    if len(color_clean) == 8:
+        color_clean = color_clean[2:]
+    if len(color_clean) == 6:
+        try:
+            r = int(color_clean[0:2], 16)
+            g = int(color_clean[2:4], 16)
+            b = int(color_clean[4:6], 16)
+            # Red: high Red, low Green/Blue
+            return r > 150 and g < 100 and b < 100
+        except ValueError:
+            return False
+    return False
+
 def clean_phone_number(phone_val):
     if not phone_val:
         return None

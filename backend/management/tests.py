@@ -522,7 +522,12 @@ class APIOperationsTest(APITestCase):
 
         # 5. Payments
         p1 = Payment.objects.filter(student=s1, group=group, amount=450000.00).count()
-        self.assertEqual(p1, 2)
+        self.assertEqual(p1, 1)
+
+        # Verify enrollment debt details for Student 1
+        e1.refresh_from_db()
+        self.assertEqual(e1.payment_status, 'debt')
+        self.assertEqual(e1.debt_amount, 450000.00)
 
         # Student 2 is enrolled free, so no prior cash payments were generated
         p2 = Payment.objects.filter(student=s2, group=group).count()
