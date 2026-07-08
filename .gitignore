@@ -2,3 +2,4 @@ backend/.venv/
 .dockerignore
 .env*
 nginx
+.agents

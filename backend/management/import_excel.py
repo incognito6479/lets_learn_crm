@@ -97,6 +97,8 @@ def run_import_excel(excel_file, month, year, price):
                 # Column AK (37): Phone number
                 phone_raw = sheet.cell(row=row_idx, column=37).value
                 phone1 = clean_phone_number(phone_raw)
+                if not phone1:
+                    phone1 = "+998000000000"
                 
                 # Get or create student
                 student, _ = Student.objects.get_or_create(
@@ -163,63 +165,65 @@ def run_import_excel(excel_file, month, year, price):
                             
                 # Column AI (35): Current month payment
                 col_ai_val = sheet.cell(row=row_idx, column=35).value
+                ai_amount = 0
                 if col_ai_val is not None:
                     try:
-                        amount = float(str(col_ai_val).replace(' ', '').strip())
-                        if amount > 0 and not is_free:
-                            if amount < 1000:
-                                amount *= 1000
-                            Payment.objects.create(
-                                group=group,
-                                student=student,
-                                amount=Decimal(str(amount)),
-                                payment_method='cash',
-                                status='accepted',
-                                description="Imported current month payment from Excel"
-                            )
-                            total_payments_imported += 1
+                        ai_amount = float(str(col_ai_val).replace(' ', '').strip())
+                        if ai_amount < 1000 and ai_amount > 0:
+                            ai_amount *= 1000
                     except ValueError:
                         pass
-                        
-                # Column AJ (36): Next month payment if text/fill is green
-                note_cell = sheet.cell(row=row_idx, column=36)
-                color_hex = None
-                if note_cell.font and note_cell.font.color and note_cell.font.color.rgb:
-                    color_hex = note_cell.font.color.rgb
-                if not color_hex and note_cell.fill and note_cell.fill.start_color and note_cell.fill.start_color.rgb:
-                    color_hex = note_cell.fill.start_color.rgb
-                    
-                is_green = is_green_color(color_hex)
-                if is_green and not is_free:
-                    overpaid_val = 0
-                    if note_cell.value is not None:
-                        try:
-                            overpaid_val = float(str(note_cell.value).replace(' ', '').strip())
-                            if overpaid_val < 1000:
-                                overpaid_val *= 1000
-                        except ValueError:
-                            pass
-                            
-                    next_month = current_month + 1
-                    next_year = current_year
-                    if next_month > 12:
-                        next_month = 1
-                        next_year += 1
-                    
-                    next_billing_day = min(enrollment_date.day, 28)
-                    next_billing_date = datetime.date(next_year, next_month, next_billing_day)
-                    next_pay_amount = overpaid_val if overpaid_val > 0 else float(group_price)
-                    
+
+                if ai_amount > 0 and not is_free:
+                    current_desc = f"Imported current month payment from Excel: {current_month}/{current_year}"
                     Payment.objects.create(
                         group=group,
                         student=student,
-                        amount=Decimal(str(next_pay_amount)),
+                        amount=Decimal(str(ai_amount)),
                         payment_method='cash',
                         status='accepted',
-                        description="Imported next month payment from Excel",
-                        payment_date=timezone.make_aware(datetime.datetime.combine(next_billing_date, datetime.time(12, 0)))
+                        description=current_desc
                     )
                     total_payments_imported += 1
+
+                    # Column AJ (36): Next month payment if background fill is green and current payment is not 0
+                    note_cell = sheet.cell(row=row_idx, column=36)
+                    color_hex = None
+                    if note_cell.fill and note_cell.fill.start_color and note_cell.fill.start_color.rgb:
+                        color_hex = note_cell.fill.start_color.rgb
+                        
+                    is_green = is_green_color(color_hex)
+                    if is_green:
+                        overpaid_val = 0
+                        if note_cell.value is not None:
+                            try:
+                                overpaid_val = float(str(note_cell.value).replace(' ', '').strip())
+                                if overpaid_val < 1000:
+                                    overpaid_val *= 1000
+                            except ValueError:
+                                pass
+                                
+                        next_month = current_month + 1
+                        next_year = current_year
+                        if next_month > 12:
+                            next_month = 1
+                            next_year += 1
+                        
+                        next_billing_day = min(enrollment_date.day, 28)
+                        next_billing_date = datetime.date(next_year, next_month, next_billing_day)
+                        next_pay_amount = overpaid_val if overpaid_val > 0 else float(group_price)
+                        
+                        next_desc = f"Imported next month payment from Excel: {next_month}/{next_year}"
+                        Payment.objects.create(
+                            group=group,
+                            student=student,
+                            amount=Decimal(str(next_pay_amount)),
+                            payment_method='cash',
+                            status='accepted',
+                            description=next_desc,
+                            payment_date=timezone.make_aware(datetime.datetime.combine(next_billing_date, datetime.time(12, 0)))
+                        )
+                        total_payments_imported += 1
                     
                 # Recalculate enrollment debt
                 enrollment.check_debt()

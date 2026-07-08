@@ -555,16 +555,24 @@ class APIOperationsTest(APITestCase):
         green_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
         ws.cell(row=4, column=3).fill = green_fill
 
-        # Row 5: student 3 - Nozanin Jamshedova, date: 29 iyun, total: 0 (current paid), note: 450 (green/overpaid), phone: 99 123 45 67
+        # Row 5: student 3 - Nozanin Jamshedova, date: 29 iyun, total: 450 (current paid), note: 450 (green/overpaid), phone: 99 123 45 67
         ws.cell(row=5, column=1, value=3)
         ws.cell(row=5, column=2, value="Nozanin Jamshedova")
         ws.cell(row=5, column=3, value="29 iyun")
-        ws.cell(row=5, column=35, value=0)
+        ws.cell(row=5, column=35, value=450)
         ws.cell(row=5, column=37, value="99 123 45 67")
-        ws.cell(row=5, column=36, value=450).font = green_font
+        ws.cell(row=5, column=36, value=450).fill = green_fill
 
-        # Row 6: ОБЩИЙ ИТОГ (stops loop)
-        ws.cell(row=6, column=2, value="ОБЩИЙ ИТОГ")
+        # Row 6: student 4 - Shahzoda Umarova, date: 29 iyun, total: 0, note: 450 (green/overpaid), phone: empty
+        ws.cell(row=6, column=1, value=4)
+        ws.cell(row=6, column=2, value="Shahzoda Umarova")
+        ws.cell(row=6, column=3, value="29 iyun")
+        ws.cell(row=6, column=35, value=0)
+        ws.cell(row=6, column=37, value="")
+        ws.cell(row=6, column=36, value=450).fill = green_fill
+
+        # Row 7: ОБЩИЙ ИТОГ (stops loop)
+        ws.cell(row=7, column=2, value="ОБЩИЙ ИТОГ")
 
         # Save workbook to memory
         excel_buffer = io.BytesIO()
@@ -606,6 +614,7 @@ class APIOperationsTest(APITestCase):
         s1 = Student.objects.get(full_name="Amirshox Davronov", phone1="+998937277007")
         s2 = Student.objects.get(full_name="Timur Mustafoev", phone1="+998882871772")
         s3 = Student.objects.get(full_name="Nozanin Jamshedova", phone1="+998991234567")
+        s4 = Student.objects.get(full_name="Shahzoda Umarova", phone1="+998000000000")
 
         # 4. Enrollments
         e1 = Enrollment.objects.get(student=s1, group=group)
@@ -629,6 +638,13 @@ class APIOperationsTest(APITestCase):
         self.assertFalse(e3.enrolled_free)
         self.assertTrue(e3.pdf_uploaded)
 
+        e4 = Enrollment.objects.get(student=s4, group=group)
+        self.assertEqual(e4.date.month, 6)
+        self.assertEqual(e4.date.day, 29)
+        self.assertEqual(e4.status, "enrolled")
+        self.assertFalse(e4.enrolled_free)
+        self.assertTrue(e4.pdf_uploaded)
+
         # 5. Payments
         # Student 1: has 1 payment (current month = 450,000 UZS)
         p1 = Payment.objects.filter(student=s1, group=group, amount=450000.00).count()
@@ -646,18 +662,28 @@ class APIOperationsTest(APITestCase):
         p2 = Payment.objects.filter(student=s2, group=group).count()
         self.assertEqual(p2, 0)
 
-        # Student 3 has no current month payment, but has next month payment
+        # Student 3 has current month payment and next month payment
         p3_all = Payment.objects.filter(student=s3, group=group).order_by('payment_date')
-        self.assertEqual(p3_all.count(), 1)
+        self.assertEqual(p3_all.count(), 2)
+        # First payment: current month
         self.assertEqual(p3_all[0].amount, 450000.00)
-        # Verify payment date is August 28
-        self.assertEqual(p3_all[0].payment_date.month, 8)
-        self.assertEqual(p3_all[0].payment_date.day, 28)
+        self.assertEqual(p3_all[0].payment_date.month, 7)
+        # Second payment: next month (August 28)
+        self.assertEqual(p3_all[1].amount, 450000.00)
+        self.assertEqual(p3_all[1].payment_date.month, 8)
+        self.assertEqual(p3_all[1].payment_date.day, 28)
 
-        # Verify student 3 debt status. Since July is the current month, and they have 0 payments for July:
+        # Verify student 3 debt status. Since they paid for the current month:
         e3.refresh_from_db()
-        self.assertEqual(e3.payment_status, 'debt')
-        self.assertEqual(float(e3.debt_amount), 450000.00)
+        self.assertEqual(e3.payment_status, 'paid')
+        self.assertEqual(float(e3.debt_amount), 0.00)
+
+        # Student 4 has no payments because AI is 0
+        p4_all = Payment.objects.filter(student=s4, group=group)
+        self.assertEqual(p4_all.count(), 0)
+        e4.refresh_from_db()
+        self.assertEqual(e4.payment_status, 'debt')
+        self.assertEqual(float(e4.debt_amount), 450000.00)
 
         # 6. Absences
         absences = Absence.objects.filter(student=s1, group=group)
