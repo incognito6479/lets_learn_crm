@@ -117,6 +117,7 @@ class Enrollment(BaseModel):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='debt', db_index=True)
     debt_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     enrolled_free = models.BooleanField(default=False)
+    pdf_uploaded = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('student', 'group')
@@ -132,6 +133,7 @@ class Enrollment(BaseModel):
         super().save(*args, **kwargs)
 
     def check_debt(self):
+        import datetime
         if self.enrolled_free:
             expected_amount = 0
             total_paid = 0
@@ -141,29 +143,53 @@ class Enrollment(BaseModel):
         else:
             today = timezone.localdate()
             start_date = self.date
-            if start_date > today:
+
+            if self.pdf_uploaded:
+                # Shift start_date to the start of the current billing cycle
+                months_elapsed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+                if today.day <= start_date.day:
+                    months_elapsed -= 1
+                months_elapsed = max(0, months_elapsed)
+                
+                cy = start_date.year + (start_date.month - 1 + months_elapsed) // 12
+                cm = (start_date.month - 1 + months_elapsed) % 12 + 1
+                cd = start_date.day
+                
+                import calendar
+                max_days = calendar.monthrange(cy, cm)[1]
+                cd = min(cd, max_days)
+                start_date = datetime.date(cy, cm, cd)
+
+            if start_date.year > today.year or (start_date.year == today.year and start_date.month > today.month):
                 months_billed = 0
             else:
                 # 1. Anniversary-based months billed
                 months_elapsed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
-                if today.day < start_date.day:
+                if today.day <= start_date.day:
                     months_elapsed -= 1
                 anniversary_months_billed = max(0, months_elapsed) + 1
 
                 # 2. Maximum calendar month index containing accepted payments
-                payment_dates = Payment.objects.filter(
+                payment_qs = Payment.objects.filter(
                     student=self.student,
                     group=self.group,
                     is_active=True,
                     status='accepted'
-                ).values_list('payment_date', flat=True)
+                )
+                if self.pdf_uploaded:
+                    start_date_dt = timezone.make_aware(datetime.datetime.combine(start_date, datetime.time.min))
+                    payment_qs = payment_qs.filter(payment_date__gte=start_date_dt)
+                payment_dates = payment_qs.values_list('payment_date', flat=True)
                 
                 max_paid_month_index = 0
                 for p_date in payment_dates:
                     if p_date:
                         p_local = timezone.localdate(p_date)
                         if p_local <= today:
-                            idx = (p_local.year - start_date.year) * 12 + (p_local.month - start_date.month) + 1
+                            idx_months = (p_local.year - start_date.year) * 12 + (p_local.month - start_date.month)
+                            if p_local.day <= start_date.day:
+                                idx_months -= 1
+                            idx = max(0, idx_months) + 1
                             if idx > max_paid_month_index:
                                 max_paid_month_index = idx
                 
@@ -172,12 +198,19 @@ class Enrollment(BaseModel):
 
             group_price = self.group.price
             expected_amount = months_billed * group_price
-            total_paid = Payment.objects.filter(
+            
+            total_paid_qs = Payment.objects.filter(
                 student=self.student,
                 group=self.group,
                 is_active=True,
                 status='accepted'
-            ).aggregate(total=Sum('amount'))['total'] or 0
+            )
+            today_dt = timezone.make_aware(datetime.datetime.combine(today, datetime.time.max))
+            total_paid_qs = total_paid_qs.filter(payment_date__lte=today_dt)
+            if self.pdf_uploaded:
+                start_date_dt = timezone.make_aware(datetime.datetime.combine(start_date, datetime.time.min))
+                total_paid_qs = total_paid_qs.filter(payment_date__gte=start_date_dt)
+            total_paid = total_paid_qs.aggregate(total=Sum('amount'))['total'] or 0
             debt = expected_amount - total_paid
             if debt < 0:
                 debt = 0

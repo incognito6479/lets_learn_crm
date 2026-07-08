@@ -77,9 +77,21 @@ def parse_enrollment_date(date_val, current_year, current_month):
     if not date_val:
         return datetime.date(current_year, current_month, 1)
     if isinstance(date_val, (datetime.date, datetime.datetime)):
-        return date_val.date() if isinstance(date_val, datetime.datetime) else date_val
+        d = date_val.date() if isinstance(date_val, datetime.datetime) else date_val
+        if d.year < current_year - 5:
+            try:
+                return datetime.date(current_year, d.month, d.day)
+            except ValueError:
+                return datetime.date(current_year, d.month, 1)
+        return d
     
     date_str = str(date_val).lower().strip()
+    for fmt in ('%d/%m/%Y', '%d-%m-%Y', '%d.%m.%Y', '%Y-%m-%d', '%d/%m/%y', '%d-%m-%y', '%d.%m.%y'):
+        try:
+            return datetime.datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
+            
     match = re.search(r'(\d+)\s*([a-zа-я]+|\/\s*[a-z]+)', date_str)
     if not match:
         return datetime.date(current_year, current_month, 1)

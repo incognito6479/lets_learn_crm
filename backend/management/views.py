@@ -149,6 +149,8 @@ class GroupViewSet(SoftDeleteModelViewSet):
     @action(detail=False, methods=['post'], url_path='import-excel')
     def import_excel(self, request):
         excel_file = request.FILES.get('file')
+        if not excel_file:
+            raise ValidationError("No file was uploaded.")
         month = request.data.get('month')
         year = request.data.get('year')
         price = request.data.get('price')

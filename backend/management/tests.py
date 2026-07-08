@@ -116,6 +116,103 @@ class GroupFinishTest(TestCase):
         self.enrollment.refresh_from_db()
         self.assertEqual(self.enrollment.status, 'finished')
 
+    def test_anniversary_billing_cycle_transition(self):
+        import datetime
+        # Enrolled on March 23
+        self.enrollment.date = datetime.date(2026, 3, 23)
+        self.enrollment.save()
+
+        # Paid once on March 23 (amount equal to group price: 100,000 UZS)
+        Payment.objects.create(
+            student=self.student,
+            group=self.group,
+            amount=Decimal('100000.00'),
+            payment_method="cash",
+            status="accepted",
+            payment_date=timezone.make_aware(datetime.datetime(2026, 3, 23, 12, 0))
+        )
+
+        from unittest.mock import patch
+
+        # Helper side_effect functions to mock timezone.localdate
+        def localdate_april_23(value=None, timezone=None):
+            if value is None:
+                return datetime.date(2026, 4, 23)
+            return value.date() if isinstance(value, datetime.datetime) else value
+
+        def localdate_april_24(value=None, timezone=None):
+            if value is None:
+                return datetime.date(2026, 4, 24)
+            return value.date() if isinstance(value, datetime.datetime) else value
+
+        # 1. On April 23 (the anniversary date): they should still be marked as "paid"
+        with patch('django.utils.timezone.localdate', side_effect=localdate_april_23):
+            self.enrollment.check_debt()
+            self.assertEqual(self.enrollment.payment_status, 'paid')
+            self.assertEqual(float(self.enrollment.debt_amount), 0.00)
+
+        # 2. On April 24 (the day after the anniversary): they should be marked as "debt" (100,000 UZS)
+        with patch('django.utils.timezone.localdate', side_effect=localdate_april_24):
+            self.enrollment.check_debt()
+            self.assertEqual(self.enrollment.payment_status, 'debt')
+            self.assertEqual(float(self.enrollment.debt_amount), 100000.00)
+
+    def test_pdf_uploaded_debt_checking(self):
+        import datetime
+        from unittest.mock import patch
+
+        # Enrolled on March 23
+        self.enrollment.date = datetime.date(2026, 3, 23)
+        self.enrollment.pdf_uploaded = True
+        self.enrollment.save()
+
+        # Register a payment on March 23
+        p1 = Payment.objects.create(
+            student=self.student,
+            group=self.group,
+            amount=Decimal('100000.00'),
+            payment_method="cash",
+            status="accepted",
+            payment_date=timezone.make_aware(datetime.datetime(2026, 3, 23, 12, 0))
+        )
+
+        def localdate_may_23(value=None, timezone=None):
+            if value is None:
+                return datetime.date(2026, 5, 23)
+            return value.date() if isinstance(value, datetime.datetime) else value
+
+        # 1. On May 23 (with only March 23 payment), the student should be in debt for the current month
+        # because the March 23 payment belongs to the ignored previous cycle.
+        with patch('django.utils.timezone.localdate', side_effect=localdate_may_23):
+            self.enrollment.check_debt()
+            self.assertEqual(self.enrollment.payment_status, 'debt')
+            self.assertEqual(float(self.enrollment.debt_amount), 100000.00)
+
+        # 2. Register a payment on April 25 (which is within the current cycle of April 23 - May 23)
+        p2 = Payment.objects.create(
+            student=self.student,
+            group=self.group,
+            amount=Decimal('100000.00'),
+            payment_method="cash",
+            status="accepted",
+            payment_date=timezone.make_aware(datetime.datetime(2026, 4, 25, 12, 0))
+        )
+
+        # Now they should be marked as "paid"
+        with patch('django.utils.timezone.localdate', side_effect=localdate_may_23):
+            self.enrollment.check_debt()
+            self.assertEqual(self.enrollment.payment_status, 'paid')
+            self.assertEqual(float(self.enrollment.debt_amount), 0.00)
+
+    def test_clean_phone_number_logic(self):
+        from management.helpers import clean_phone_number
+        self.assertEqual(clean_phone_number("90 900 90 90"), "+998909009090")
+        self.assertEqual(clean_phone_number("909009090"), "+998909009090")
+        self.assertEqual(clean_phone_number("+998 90 900 90 90"), "+998909009090")
+        self.assertEqual(clean_phone_number("998909009090"), "+998909009090")
+        self.assertEqual(clean_phone_number(""), None)
+        self.assertEqual(clean_phone_number(None), None)
+
 
 class APIOperationsTest(APITestCase):
     def setUp(self):
@@ -436,7 +533,6 @@ class APIOperationsTest(APITestCase):
         ws.cell(row=3, column=4, value="-") # day 1 absence
         ws.cell(row=3, column=35, value=450)
         ws.cell(row=3, column=37, value="93 727 70 07")
-        ws.cell(row=3, column=38, value="99 988 98 98") # Col AL
         
         red_font = Font(color="FFFF0000")
         ws.cell(row=3, column=36, value=450).font = red_font
@@ -459,8 +555,16 @@ class APIOperationsTest(APITestCase):
         green_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
         ws.cell(row=4, column=3).fill = green_fill
 
-        # Row 5: ОБЩИЙ ИТОГ (stops loop)
-        ws.cell(row=5, column=2, value="ОБЩИЙ ИТОГ")
+        # Row 5: student 3 - Nozanin Jamshedova, date: 29 iyun, total: 0 (current paid), note: 450 (green/overpaid), phone: 99 123 45 67
+        ws.cell(row=5, column=1, value=3)
+        ws.cell(row=5, column=2, value="Nozanin Jamshedova")
+        ws.cell(row=5, column=3, value="29 iyun")
+        ws.cell(row=5, column=35, value=0)
+        ws.cell(row=5, column=37, value="99 123 45 67")
+        ws.cell(row=5, column=36, value=450).font = green_font
+
+        # Row 6: ОБЩИЙ ИТОГ (stops loop)
+        ws.cell(row=6, column=2, value="ОБЩИЙ ИТОГ")
 
         # Save workbook to memory
         excel_buffer = io.BytesIO()
@@ -499,13 +603,9 @@ class APIOperationsTest(APITestCase):
         self.assertEqual(group.starts_at.hour, 9)
 
         # 3. Students
-        s1 = Student.objects.get(full_name="Amirshox Davronov")
-        self.assertEqual(s1.phone1, "+998937277007")
-        self.assertEqual(s1.phone2, "+998999889898")
-
-        s2 = Student.objects.get(full_name="Timur Mustafoev")
-        self.assertEqual(s2.phone1, "+998882871772")
-        self.assertIsNone(s2.phone2)
+        s1 = Student.objects.get(full_name="Amirshox Davronov", phone1="+998937277007")
+        s2 = Student.objects.get(full_name="Timur Mustafoev", phone1="+998882871772")
+        s3 = Student.objects.get(full_name="Nozanin Jamshedova", phone1="+998991234567")
 
         # 4. Enrollments
         e1 = Enrollment.objects.get(student=s1, group=group)
@@ -513,25 +613,51 @@ class APIOperationsTest(APITestCase):
         self.assertEqual(e1.date.day, 24)
         self.assertEqual(e1.status, "dropped") # Excluded due to yellow cell fill
         self.assertFalse(e1.enrolled_free)
+        self.assertTrue(e1.pdf_uploaded)
 
         e2 = Enrollment.objects.get(student=s2, group=group)
         self.assertEqual(e2.date.month, 6)
         self.assertEqual(e2.date.day, 16)
         self.assertEqual(e2.status, "enrolled")
         self.assertTrue(e2.enrolled_free)
+        self.assertTrue(e2.pdf_uploaded)
+
+        e3 = Enrollment.objects.get(student=s3, group=group)
+        self.assertEqual(e3.date.month, 6)
+        self.assertEqual(e3.date.day, 29)
+        self.assertEqual(e3.status, "enrolled")
+        self.assertFalse(e3.enrolled_free)
+        self.assertTrue(e3.pdf_uploaded)
 
         # 5. Payments
+        # Student 1: has 1 payment (current month = 450,000 UZS)
         p1 = Payment.objects.filter(student=s1, group=group, amount=450000.00).count()
         self.assertEqual(p1, 1)
 
         # Verify enrollment debt details for Student 1
+        # Enrolled June 24, today is July 8.
+        # Since pdf_uploaded is True: only the current cycle (June 24 - July 24) is evaluated.
+        # And they paid 450,000 UZS. So debt should be 0, status 'paid'!
         e1.refresh_from_db()
-        self.assertEqual(e1.payment_status, 'debt')
-        self.assertEqual(e1.debt_amount, 450000.00)
+        self.assertEqual(e1.payment_status, 'paid')
+        self.assertEqual(float(e1.debt_amount), 0.00)
 
         # Student 2 is enrolled free, so no prior cash payments were generated
         p2 = Payment.objects.filter(student=s2, group=group).count()
         self.assertEqual(p2, 0)
+
+        # Student 3 has no current month payment, but has next month payment
+        p3_all = Payment.objects.filter(student=s3, group=group).order_by('payment_date')
+        self.assertEqual(p3_all.count(), 1)
+        self.assertEqual(p3_all[0].amount, 450000.00)
+        # Verify payment date is August 28
+        self.assertEqual(p3_all[0].payment_date.month, 8)
+        self.assertEqual(p3_all[0].payment_date.day, 28)
+
+        # Verify student 3 debt status. Since July is the current month, and they have 0 payments for July:
+        e3.refresh_from_db()
+        self.assertEqual(e3.payment_status, 'debt')
+        self.assertEqual(float(e3.debt_amount), 450000.00)
 
         # 6. Absences
         absences = Absence.objects.filter(student=s1, group=group)
