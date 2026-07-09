@@ -2,5 +2,5 @@ backend/celery_beat
 backend/.venv/
 .dockerignore
 .env*
-nginx
+nginx/app.conf
 .agents
