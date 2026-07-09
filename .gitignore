@@ -1,3 +1,4 @@
+backend/celery_beat
 backend/.venv/
 .dockerignore
 .env*
