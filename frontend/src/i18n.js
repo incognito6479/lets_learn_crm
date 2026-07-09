@@ -341,7 +341,8 @@ const translations = {
       form_password_hint: "(оставьте пустым для сохранения текущего)",
       form_branch: "Выберите филиал",
       form_status: "Активный статус",
-      error_delete: "Произошла ошибка при удалении преподавателя. Если он ведет активные группы, удаление запрещено."
+      error_delete: "Произошла ошибка при удалении преподавателя. Если он ведет активные группы, удаление запрещено.",
+      delete_confirm: "Вы уверены, что хотите удалить преподавателя \"{name}\"?"
     },
     teacherDetail: {
       back: "Назад к преподавателям",
@@ -770,7 +771,8 @@ const translations = {
       form_password_hint: "(joriy parolni saqlab qolish uchun bo'sh qoldiring)",
       form_branch: "Filialni tanlang",
       form_status: "Faol holatda",
-      error_delete: "O'qituvchini o'chirishda xatolik yuz berdi. Agar u faol guruhlarda dars berayotgan bo'lsa, o'chirish taqiqlanadi."
+      error_delete: "O'qituvchini o'chirishda xatolik yuz berdi. Agar u faol guruhlarda dars berayotgan bo'lsa, o'chirish taqiqlanadi.",
+      delete_confirm: "Haqiqatan ham o'qituvchi \"{name}\"ni tizimdan o'chirmoqchimisiz?"
     },
     teacherDetail: {
       back: "O'qituvchilarga qaytish",

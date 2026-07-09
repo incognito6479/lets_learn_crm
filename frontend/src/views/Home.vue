@@ -180,7 +180,7 @@ export default {
         ])
 
         this.studentCount = studentsRes.data.length
-        this.teacherCount = usersRes.data.filter(u => u.role === 'teacher').length
+        this.teacherCount = usersRes.data.filter(u => u.role === 'teacher' && u.is_active).length
         
         // Calculate active ongoing groups
         this.activeGroupsCount = groupsRes.data.filter(g => g.status === 'ongoing').length
