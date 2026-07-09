@@ -1,4 +1,4 @@
-backend/celery_beat
+backend/celerybeat-schedule
 backend/.venv/
 .dockerignore
 .env*
