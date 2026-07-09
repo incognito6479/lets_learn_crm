@@ -170,13 +170,22 @@
         <div v-if="userRole !== 'teacher'" class="table-card">
           <div class="table-header-bar">
             <h2 class="card-section-title">{{ $t('groupDetail.enrolled_students') }}</h2>
-            <button v-if="userRole !== 'teacher'" @click="openEnrollModal" class="btn btn-primary btn-sm">
-              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              {{ $t('groupDetail.enroll_student') }}
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <input
+                type="text"
+                v-model="studentSearchQuery"
+                :placeholder="$t('groupDetail.search_students')"
+                class="form-input"
+                style="max-width: 250px; padding: 0.4rem 0.75rem; font-size: 0.875rem;"
+              />
+              <button v-if="userRole !== 'teacher'" @click="openEnrollModal" class="btn btn-primary btn-sm">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                {{ $t('groupDetail.enroll_student') }}
+              </button>
+            </div>
           </div>
           <div class="table-wrapper">
             <table class="data-table">
@@ -192,7 +201,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="enrolled in enrolledStudents" :key="enrolled.enrollmentId" class="table-row">
+                <tr v-for="enrolled in filteredEnrolledStudents" :key="enrolled.enrollmentId" class="table-row">
                   <td class="font-mono text-muted">#{{ enrolled.id }}</td>
                   <td class="font-semibold">
                     <router-link :to="`/enrollments/${enrolled.enrollmentId}`" class="student-detail-link">
@@ -243,7 +252,7 @@
                     </button>
                   </td>
                 </tr>
-                 <tr v-if="!enrolledStudents.length">
+                 <tr v-if="!filteredEnrolledStudents.length">
                    <td :colspan="userRole === 'teacher' ? 5 : 7" class="empty-state">{{ $t('groupDetail.no_students') }}</td>
                  </tr>
               </tbody>
@@ -780,6 +789,7 @@ export default {
       // Enrollment modal state
       showEnrollModal: false,
       enrollSearchQuery: '',
+      studentSearchQuery: '',
       selectedStudentIds: [],
       submittingEnrollment: false,
       enrollFreeChecked: false,
@@ -868,6 +878,12 @@ export default {
           ...studentInfo
         }
       }).filter(item => item.full_name)
+    },
+    filteredEnrolledStudents() {
+      const list = this.enrolledStudents
+      const query = this.studentSearchQuery.toLowerCase().trim()
+      if (!query) return list
+      return list.filter(s => s.full_name && s.full_name.toLowerCase().includes(query))
     },
     activeEnrolledStudents() {
       return this.enrolledStudents.filter(s => s.status !== 'dropped')

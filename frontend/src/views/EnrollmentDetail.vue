@@ -26,7 +26,14 @@
       <div class="main-info-col">
         <!-- Student Info Card -->
         <div class="detail-card glass-panel">
-          <div class="panel-header">
+          <div class="panel-header" style="display: flex; align-items: center; gap: 1rem;">
+            <button @click="openEditStudentModal" class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              {{ $t('common.edit') }}
+            </button>
             <h2 class="panel-title">{{ $t('enrollmentDetail.profile_card') }}</h2>
           </div>
           <div class="panel-body">
@@ -300,6 +307,88 @@
         </form>
       </div>
     </div>
+
+    <!-- Edit Student Modal -->
+    <div v-if="showEditStudentModal" class="modal-backdrop" @click.self="closeEditStudentModal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">{{ $t('students.modal_edit') }}</h2>
+          <button @click="closeEditStudentModal" class="modal-close">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="updateStudent">
+          <div class="modal-body">
+            <!-- Full Name -->
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="studentName" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.student_fullname') }}</label>
+              <input
+                type="text"
+                id="studentName"
+                v-model="studentForm.full_name"
+                required
+                class="form-input"
+                style="width: 100%; box-sizing: border-box;"
+              />
+            </div>
+
+            <!-- Phone 1 -->
+            <div class="form-group" style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="studentPhone1" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.student_phone1') }}</label>
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="studentPhone1"
+                  :value="studentForm.phone1"
+                  @input="handleStudentPhoneInput($event, 'phone1')"
+                  @keypress="onlyNumber"
+                  required
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                  style="width: 100%; box-sizing: border-box;"
+                />
+              </div>
+            </div>
+
+            <!-- Phone 2 -->
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+              <label for="studentPhone2" class="form-label" style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">{{ $t('groupDetail.student_phone2') }}</label>
+              <div class="phone-input-wrapper">
+                <span class="phone-prefix">+998</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  id="studentPhone2"
+                  :value="studentForm.phone2"
+                  @input="handleStudentPhoneInput($event, 'phone2')"
+                  @keypress="onlyNumber"
+                  placeholder="90 123 45 67"
+                  class="phone-editable-input"
+                  style="width: 100%; box-sizing: border-box;"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" @click="closeEditStudentModal" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submittingStudentUpdate || !studentForm.full_name || !studentForm.phone1"
+            >
+              {{ submittingStudentUpdate ? $t('groupDetail.processing') : $t('common.save') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -327,6 +416,14 @@ export default {
         amount: '',
         payment_method: 'cash',
         description: ''
+      },
+      showEditStudentModal: false,
+      submittingStudentUpdate: false,
+      studentForm: {
+        id: null,
+        full_name: '',
+        phone1: '',
+        phone2: ''
       }
     }
   },
@@ -535,6 +632,119 @@ export default {
         alert(this.$t('groupDetail.error_payment'))
       } finally {
         this.submittingPayment = false
+      }
+    },
+    openEditStudentModal() {
+      this.studentForm = {
+        id: this.student.id,
+        full_name: this.student.full_name,
+        phone1: this.parsePhoneForInput(this.student.phone1),
+        phone2: this.parsePhoneForInput(this.student.phone2 || '')
+      }
+      this.showEditStudentModal = true
+    },
+    closeEditStudentModal() {
+      this.showEditStudentModal = false
+    },
+    formatPhoneInput(val) {
+      if (!val) return ''
+      const digits = val.replace(/\D/g, '').slice(0, 9)
+      let formatted = ''
+      if (digits.length > 0) {
+        formatted += digits.substring(0, 2)
+      }
+      if (digits.length > 2) {
+        formatted += ' ' + digits.substring(2, 5)
+      }
+      if (digits.length > 5) {
+        formatted += ' ' + digits.substring(5, 7)
+      }
+      if (digits.length > 7) {
+        formatted += ' ' + digits.substring(7, 9)
+      }
+      return formatted
+    },
+    handleStudentPhoneInput(e, field) {
+      const input = e.target
+      const rawValue = input.value
+      
+      const selectionStart = input.selectionStart
+      const digitsBefore = rawValue.substring(0, selectionStart).replace(/\D/g, '').length
+      
+      const formatted = this.formatPhoneInput(rawValue)
+      this.studentForm[field] = formatted
+      
+      this.$nextTick(() => {
+        let newCursorPos = 0
+        let digitCount = 0
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            digitCount++
+          }
+          newCursorPos = i + 1
+          if (digitCount === digitsBefore) {
+            break
+          }
+        }
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+    parsePhoneForInput(phoneStr) {
+      if (!phoneStr) return ''
+      let localPart = phoneStr
+      if (phoneStr.startsWith('+998')) {
+        localPart = phoneStr.substring(4)
+      } else if (phoneStr.startsWith('998')) {
+        localPart = phoneStr.substring(3)
+      }
+      return this.formatPhoneInput(localPart)
+    },
+    onlyNumber(event) {
+      const charCode = event.which ? event.which : event.keyCode
+      if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+        event.preventDefault()
+      }
+      return true
+    },
+    async updateStudent() {
+      this.submittingStudentUpdate = true
+      
+      const rawPhone1 = this.studentForm.phone1.replace(/\D/g, '')
+      if (rawPhone1.length !== 9) {
+        alert(this.$t('students.phone_length_error'))
+        this.submittingStudentUpdate = false
+        return
+      }
+      
+      let rawPhone2 = null
+      if (this.studentForm.phone2) {
+        const parsed2 = this.studentForm.phone2.replace(/\D/g, '')
+        if (parsed2) {
+          if (parsed2.length !== 9) {
+            alert(this.$t('students.phone_length_error'))
+            this.submittingStudentUpdate = false
+            return
+          }
+          rawPhone2 = '+998' + parsed2
+        }
+      }
+      
+      const payload = {
+        full_name: this.studentForm.full_name,
+        phone1: '+998' + rawPhone1,
+        phone2: rawPhone2,
+        description: this.student.description || ''
+      }
+      
+      try {
+        await axios.put(`/api/students/${this.student.id}/`, payload)
+        this.closeEditStudentModal()
+        await this.fetchData()
+      } catch (err) {
+        console.error('Error updating student:', err)
+        alert(this.$t('common.error_save'))
+      } finally {
+        this.submittingStudentUpdate = false
       }
     }
   }
