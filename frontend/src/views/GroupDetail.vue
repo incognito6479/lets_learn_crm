@@ -995,7 +995,7 @@ export default {
 
         this.group = groupRes.data
         this.courses = coursesRes.data
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher')
+        this.teachers = usersRes.data.filter(u => u.role === 'teacher' && u.is_active)
         this.rooms = roomsRes.data
         this.branches = branchesRes.data
         this.students = studentsRes.data

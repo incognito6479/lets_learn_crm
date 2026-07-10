@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
-from management.models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification
+from management.models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification, Lead
 from management.views import GroupViewSet
 from django.core.management import call_command
 import io
@@ -1085,3 +1085,109 @@ class NotificationsAndPayoutConfirmationsTest(APITestCase):
         admin_notifs = Notification.objects.filter(recipient=self.admin, notification_type='payment_accepted')
         self.assertEqual(admin_notifs.count(), 1)
         self.assertIn("confirmed receipt", admin_notifs.first().message)
+
+
+class LeadManagementTests(APITestCase):
+    def setUp(self):
+        self.branch = Branch.objects.create(name="Lead Branch", description="Lead campus")
+        self.admin = User.objects.create(
+            username="admin_lead",
+            first_name="Lead",
+            last_name="Admin",
+            role="admin",
+            branch=self.branch
+        )
+        self.admin.set_password("password")
+        self.admin.save()
+        self.teacher = User.objects.create(
+            username="teacher_lead",
+            first_name="Lead",
+            last_name="Teacher",
+            role="teacher"
+        )
+        self.teacher.set_password("password")
+        self.teacher.save()
+        self.course = Course.objects.create(
+            name="Math Course",
+            price=Decimal('120000.00')
+        )
+        self.room = Room.objects.create(
+            name="Room Lead",
+            branch=self.branch
+        )
+
+    def test_lead_notifications_threshold(self):
+        # Create 10 leads -> no notification trigger yet
+        for i in range(10):
+            Lead.objects.create(
+                full_name=f"Lead Student {i}",
+                phone=f"+99890123456{i}",
+                course=self.course,
+                branch=self.branch,
+                status="pending"
+            )
+        
+        self.assertEqual(Notification.objects.filter(recipient=self.admin, notification_type='lead_alert').count(), 0)
+
+        # Create 11th lead -> triggers notification!
+        Lead.objects.create(
+            full_name="Lead Student 11",
+            phone="+998901234569",
+            course=self.course,
+            branch=self.branch,
+            status="pending"
+        )
+
+        notifs = Notification.objects.filter(recipient=self.admin, notification_type='lead_alert')
+        self.assertEqual(notifs.count(), 1)
+        self.assertIn("There are now 11 interested students", notifs.first().message)
+
+    def test_create_group_action(self):
+        self.client.force_authenticate(user=self.admin)
+        leads = []
+        for i in range(3):
+            lead = Lead.objects.create(
+                full_name=f"Group Lead Student {i}",
+                phone=f"+99890765432{i}",
+                course=self.course,
+                branch=self.branch,
+                status="pending"
+            )
+            leads.append(lead.id)
+
+        data = {
+            'name': "New Math Group",
+            'teacher': self.teacher.id,
+            'room': self.room.id,
+            'course': self.course.id,
+            'started_at': '2026-07-10',
+            'starts_at': '10:00:00',
+            'duration': 90,
+            'price': 120000.00,
+            'teacher_share': 45,
+            'group_days_at': 'Mon-Wed-Fri',
+            'lead_ids': leads
+        }
+
+        response = self.client.post('/api/leads/create-group/', data, format='json')
+        self.assertEqual(response.status_code, 201)
+        group_id = response.data['id']
+
+        group = Group.objects.get(id=group_id)
+        self.assertEqual(group.name, "New Math Group")
+        self.assertEqual(group.branch, self.branch)
+        self.assertEqual(group.teacher, self.teacher)
+        
+        # Verify student creation and enrollment
+        for i in range(3):
+            phone = f"+99890765432{i}"
+            student = Student.objects.get(phone1=phone)
+            self.assertEqual(student.full_name, f"Group Lead Student {i}")
+            
+            # Verify enrollment status
+            enrollment = Enrollment.objects.get(student=student, group=group)
+            self.assertEqual(enrollment.status, 'enrolled')
+            
+            # Verify lead is converted
+            lead = Lead.objects.get(phone=phone)
+            self.assertEqual(lead.status, 'converted')

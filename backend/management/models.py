@@ -283,6 +283,7 @@ class Notification(BaseModel):
         ('absence', 'Absence Alert'),
         ('payment_pending', 'Payment Pending Confirmation'),
         ('payment_accepted', 'Payment Accepted'),
+        ('lead_alert', 'Lead Alert'),
     )
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=255)
@@ -292,3 +293,60 @@ class Notification(BaseModel):
 
     def __str__(self):
         return f"{self.recipient.username} - {self.title} - Read: {self.is_read}"
+
+
+class Lead(BaseModel):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('coming', 'Coming'),
+        ('not_coming', 'Not Coming'),
+        ('converted', 'Converted'),
+    )
+    full_name = models.CharField(max_length=255, db_index=True)
+    phone = models.CharField(max_length=20, db_index=True)
+    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name='leads')
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name='leads', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.phone}) - {self.course.name}"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = Lead.objects.get(pk=self.pk).status
+            except Lead.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
+        
+        # Check threshold if lead became active or is new and active
+        status_changed_to_active = (
+            is_new and self.is_active and self.status in ['pending', 'coming']
+        ) or (
+            not is_new and self.is_active and self.status in ['pending', 'coming'] and old_status not in ['pending', 'coming']
+        )
+        
+        if status_changed_to_active:
+            count = Lead.objects.filter(
+                course=self.course,
+                branch=self.branch,
+                is_active=True,
+                status__in=['pending', 'coming']
+            ).count()
+            if count > 10:
+                admins = User.objects.filter(role='admin', is_active=True)
+                for admin in admins:
+                    if not admin.branch or admin.branch == self.branch:
+                        # Avoid duplicate unread alerts
+                        Notification.objects.get_or_create(
+                            recipient=admin,
+                            title=f"Lead Alert: {self.course.name}",
+                            message=f"There are now {count} interested students for course '{self.course.name}' in branch '{self.branch.name}'. Consider creating a new group.",
+                            notification_type='lead_alert',
+                            is_read=False
+                        )
+

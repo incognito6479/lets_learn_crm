@@ -14,6 +14,7 @@ import EnrollmentDetail from '../views/EnrollmentDetail.vue'
 import Timetable from '../views/Timetable.vue'
 import TeacherDetail from '../views/TeacherDetail.vue'
 import Notifications from '../views/Notifications.vue'
+import Leads from '../views/Leads.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -27,6 +28,7 @@ const routes = [
   { path: '/groups', name: 'Groups', component: Groups },
   { path: '/groups/:id', name: 'GroupDetail', component: GroupDetail },
   { path: '/debts', name: 'DebtList', component: DebtList },
+  { path: '/leads', name: 'Leads', component: Leads },
   { path: '/enrollments/:id', name: 'EnrollmentDetail', component: EnrollmentDetail },
   { path: '/timetable', name: 'Timetable', component: Timetable },
   { path: '/teachers/:id', name: 'TeacherDetail', component: TeacherDetail },

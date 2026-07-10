@@ -37,6 +37,10 @@
           <span class="nav-icon">⚠️</span>
           <span class="nav-text">{{ $t('nav.debts') }}</span>
         </router-link>
+        <router-link v-if="userRole !== 'teacher'" to="/leads" class="nav-item">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-text">{{ $t('nav.leads') }}</span>
+        </router-link>
         <router-link v-if="userRole !== 'teacher'" to="/students" class="nav-item">
           <span class="nav-icon">🎓</span>
           <span class="nav-text">{{ $t('nav.students') }}</span>

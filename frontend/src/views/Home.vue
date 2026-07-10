@@ -55,6 +55,27 @@
         </div>
       </div>
 
+      <!-- Interested Students Stat Card -->
+      <div class="stat-card card-pink" @click="$router.push('/leads')">
+        <div class="card-content">
+          <div class="card-info">
+            <span class="card-label">{{ $t('stats.interested_students') }}</span>
+            <h2 class="card-value" v-if="!loading">{{ pendingLeadsCount }}</h2>
+            <div class="spinner-small" v-else></div>
+          </div>
+          <div class="card-icon-wrapper">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>{{ $t('stats.view_interested', { count: pendingLeadsCount }) }}</span>
+        </div>
+      </div>
+
       <!-- Outstanding Debt Stat Card -->
       <div class="stat-card card-red" @click="$router.push('/debts')">
         <div class="card-content">
@@ -157,6 +178,7 @@ export default {
       activeGroupsCount: 0,
       currentMonthIncome: 0,
       currentMonthTeacherPaid: 0,
+      pendingLeadsCount: 0,
       loading: false,
       error: null
     }
@@ -171,16 +193,19 @@ export default {
       this.error = null
 
       try {
-        const [studentsRes, usersRes, enrollmentsRes, groupsRes, paymentsRes] = await Promise.all([
+        const [studentsRes, usersRes, enrollmentsRes, groupsRes, paymentsRes, leadsRes] = await Promise.all([
           axios.get('/api/students/'),
           axios.get('/api/users/'),
           axios.get('/api/enrollments/'),
           axios.get('/api/groups/'),
-          axios.get('/api/payments/')
+          axios.get('/api/payments/'),
+          axios.get('/api/leads/')
         ])
 
-        this.studentCount = studentsRes.data.length
+        this.studentCount = studentsRes.data.filter(s => s.is_active).length
+        console.log(studentsRes.data)
         this.teacherCount = usersRes.data.filter(u => u.role === 'teacher' && u.is_active).length
+        this.pendingLeadsCount = leadsRes.data.filter(l => l.status === 'pending').length
         
         // Calculate active ongoing groups
         this.activeGroupsCount = groupsRes.data.filter(g => g.status === 'ongoing').length
@@ -385,6 +410,18 @@ export default {
 }
 .card-green .card-footer {
   color: #10b981;
+}
+
+.card-pink .card-icon-wrapper {
+  background-color: rgba(236, 72, 153, 0.08);
+  color: #ec4899;
+}
+.card-pink:hover .card-icon-wrapper {
+  background-color: #ec4899;
+  color: white;
+}
+.card-pink .card-footer {
+  color: #ec4899;
 }
 
 .card-orange .card-icon-wrapper {

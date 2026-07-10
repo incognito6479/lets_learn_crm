@@ -3,16 +3,19 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification, Lead
 from .serializers import (
     BranchSerializer, UserSerializer, StudentSerializer, 
     RoomSerializer, CourseSerializer, GroupSerializer, 
     EnrollmentSerializer, PaymentSerializer, GradeSerializer, AbsenceSerializer,
-    NotificationSerializer
+    NotificationSerializer, LeadSerializer
 )
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from management.import_excel import run_import_excel
+from django.db import transaction
+from django.utils import timezone
+
 
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
@@ -330,3 +333,99 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class LeadViewSet(SoftDeleteModelViewSet):
+    queryset = Lead.objects.all()
+    serializer_class = LeadSerializer
+    permission_classes = [IsCashierOrAdminOrCEOOrSuperuserOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset().exclude(status="converted")
+        user = self.request.user
+        if user.is_authenticated and user.role == 'admin' and user.branch:
+            qs = qs.filter(branch=user.branch)
+        
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            qs = qs.filter(course_id=course_id)
+            
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
+            
+        return qs
+
+    @action(detail=False, methods=['post'], url_path='create-group')
+    def create_group(self, request):
+        name = request.data.get('name')
+        teacher_id = request.data.get('teacher')
+        room_id = request.data.get('room')
+        course_id = request.data.get('course')
+        started_at = request.data.get('started_at')
+        starts_at = request.data.get('starts_at')
+        duration = request.data.get('duration')
+        price = request.data.get('price')
+        teacher_share = request.data.get('teacher_share', 50)
+        group_days_at = request.data.get('group_days_at', 'Mon-Wed-Fri')
+        lead_ids = request.data.get('lead_ids', [])
+
+        if not lead_ids:
+            raise ValidationError("Please select at least one lead.")
+        if not name or not course_id or not started_at or not starts_at or not duration:
+            raise ValidationError("Missing required group fields.")
+        
+        with transaction.atomic():
+            leads = Lead.objects.filter(id__in=lead_ids, is_active=True)
+            if not leads.exists():
+                raise ValidationError("No valid leads found.")
+            
+            # Inherit branch from first lead
+            branch = leads.first().branch
+            
+            try:
+                course = Course.objects.get(id=course_id)
+            except Course.DoesNotExist:
+                raise ValidationError("Course not found.")
+                
+            teacher = User.objects.filter(id=teacher_id, role='teacher').first() if teacher_id else None
+            room = Room.objects.filter(id=room_id).first() if room_id else None
+
+            group = Group.objects.create(
+                name=name,
+                course=course,
+                teacher=teacher,
+                room=room,
+                branch=branch,
+                started_at=started_at,
+                starts_at=starts_at,
+                duration=duration,
+                price=price or course.price,
+                teacher_share=teacher_share,
+                group_days_at=group_days_at,
+                status='ongoing'
+            )
+
+            for lead in leads:
+                student, created = Student.objects.get_or_create(
+                    phone1=lead.phone,
+                    defaults={
+                        'full_name': lead.full_name,
+                        'description': lead.notes or f"Converted from lead on {timezone.localdate()}"
+                    }
+                )
+                
+                # Enroll student
+                Enrollment.objects.get_or_create(
+                    student=student,
+                    group=group,
+                    defaults={
+                        'status': 'enrolled'
+                    }
+                )
+                
+                # Update lead status to converted
+                lead.status = 'converted'
+                lead.save()
+
+            return Response(GroupSerializer(group).data, status=status.HTTP_201_CREATED)

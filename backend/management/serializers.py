@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification
+from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification, Lead
 from django.db.models import Sum
 
 
@@ -35,7 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        exclude = ('created_at', 'is_active')
+        exclude = ('created_at',)
 
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
@@ -144,3 +144,12 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = '__all__'
+
+
+class LeadSerializer(serializers.ModelSerializer):
+    course_name = serializers.ReadOnlyField(source='course.name')
+    branch_name = serializers.ReadOnlyField(source='branch.name')
+
+    class Meta:
+        model = Lead
+        exclude = ('created_at', 'is_active')
