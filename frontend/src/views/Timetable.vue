@@ -129,7 +129,6 @@ export default {
       teachers: [],
       rooms: [],
       branches: [],
-      courses: [],
       selectedBranch: '',
       selectedRoom: '',
       selectedTeacher: '',
@@ -226,17 +225,7 @@ export default {
       let currentGridRow = 2 // Row 1 is header
 
       for (let dayIdx = 0; dayIdx < 6; dayIdx++) {
-        // Filter cards in this day based on active selection filters
         let cardsInDay = dayCards[dayIdx]
-        if (this.selectedBranch) {
-          cardsInDay = cardsInDay.filter(c => c.branchId === this.selectedBranch)
-        }
-        if (this.selectedRoom) {
-          cardsInDay = cardsInDay.filter(c => c.roomId === this.selectedRoom)
-        }
-        if (this.selectedTeacher) {
-          cardsInDay = cardsInDay.filter(c => c.teacherId === this.selectedTeacher)
-        }
 
         // Sort by starting minutes to do interval scheduling
         cardsInDay.sort((a, b) => a.startMin - b.startMin)
@@ -297,6 +286,18 @@ export default {
       }
     }
   },
+  watch: {
+    selectedBranch() {
+      this.selectedRoom = ''
+      this.fetchGroups()
+    },
+    selectedRoom() {
+      this.fetchGroups()
+    },
+    selectedTeacher() {
+      this.fetchGroups()
+    }
+  },
   mounted() {
     this.fetchData()
   },
@@ -305,26 +306,47 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [groupsRes, usersRes, roomsRes, branchesRes, coursesRes] = await Promise.all([
-          axios.get('/api/groups/'),
-          axios.get('/api/users/'),
+        const [usersRes, roomsRes, branchesRes] = await Promise.all([
+          axios.get('/api/users/', { params: { role: 'teacher', is_active: 'true' } }),
           axios.get('/api/rooms/'),
-          axios.get('/api/branches/'),
-          axios.get('/api/courses/')
+          axios.get('/api/branches/')
         ])
 
-        let groupsData = groupsRes.data
+        this.teachers = usersRes.data
+        this.rooms = roomsRes.data
+        this.branches = branchesRes.data
+
+        await this.fetchGroups()
+      } catch (err) {
+        console.error('Error fetching timetable data:', err)
+        this.error = this.$t('timetable.error_load')
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchGroups() {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        if (this.selectedBranch) {
+          params.branch = this.selectedBranch
+        }
+        if (this.selectedRoom) {
+          params.room = this.selectedRoom
+        }
+        if (this.selectedTeacher) {
+          params.teacher = this.selectedTeacher
+        }
+        const res = await axios.get('/api/groups/', { params })
+        
+        let groupsData = res.data
         if (this.userRole === 'teacher' && this.userId) {
           groupsData = groupsData.filter(g => g.teacher === this.userId)
         }
-
         this.groups = groupsData
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher' && u.is_active)
-        this.rooms = roomsRes.data
-        this.branches = branchesRes.data
-        this.courses = coursesRes.data
       } catch (err) {
-        console.error('Error fetching timetable data:', err)
+        console.error('Error fetching timetable groups:', err)
         this.error = this.$t('timetable.error_load')
       } finally {
         this.loading = false

@@ -204,7 +204,6 @@ export default {
       if (!this.enrollments.length || !this.students.length || !this.groups.length || !this.branches.length) return []
       
       return this.enrollments
-        .filter(e => e.status === 'enrolled' && e.payment_status === 'debt' && !e.enrolled_free)
         .map(e => {
           const student = this.students.find(s => s.id === e.student) || {}
           const group = this.groups.find(g => g.id === e.group) || {}
@@ -234,9 +233,6 @@ export default {
       if (this.selectedBranch) {
         list = list.filter(d => d.branchId === this.selectedBranch)
       }
-      if (this.selectedGroup) {
-        list = list.filter(d => d.groupId === this.selectedGroup)
-      }
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase().trim()
         list = list.filter(d => d.studentName.toLowerCase().includes(query))
@@ -248,6 +244,11 @@ export default {
       return this.filteredDebts.reduce((sum, d) => sum + d.debt_amount, 0)
     }
   },
+  watch: {
+    selectedGroup() {
+      this.fetchEnrollments()
+    }
+  },
   mounted() {
     this.fetchData()
   },
@@ -256,21 +257,42 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [enrollmentsRes, studentsRes, groupsRes, branchesRes] = await Promise.all([
-          axios.get('/api/enrollments/'),
+        const [studentsRes, groupsRes, branchesRes] = await Promise.all([
           axios.get('/api/students/'),
           axios.get('/api/groups/'),
           axios.get('/api/branches/')
         ])
         
-        this.enrollments = enrollmentsRes.data
         this.students = studentsRes.data
         this.groups = groupsRes.data
         this.branches = branchesRes.data
-        this.loading = false
+
+        await this.fetchEnrollments()
       } catch (err) {
         console.error('Error fetching debts data:', err)
         this.error = this.$t('stats.api_error')
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchEnrollments() {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {
+          status: 'enrolled',
+          payment_status: 'debt',
+          enrolled_free: 'false'
+        }
+        if (this.selectedGroup) {
+          params.group = this.selectedGroup
+        }
+        const res = await axios.get('/api/enrollments/', { params })
+        this.enrollments = res.data
+      } catch (err) {
+        console.error('Error fetching enrollments:', err)
+        this.error = this.$t('stats.api_error')
+      } finally {
         this.loading = false
       }
     },

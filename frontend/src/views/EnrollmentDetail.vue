@@ -479,7 +479,7 @@ export default {
           axios.get(`/api/enrollments/${id}/`),
           axios.get('/api/payments/'),
           axios.get('/api/courses/'),
-          axios.get('/api/users/'),
+          axios.get('/api/users/', { params: { role: 'teacher' } }),
           axios.get('/api/rooms/'),
           axios.get('/api/branches/'),
           axios.get('/api/enrollments/')
@@ -488,7 +488,7 @@ export default {
         this.enrollment = enrollmentRes.data
         this.payments = paymentsRes.data
         this.courses = coursesRes.data
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher')
+        this.teachers = usersRes.data
         this.rooms = roomsRes.data
         this.branches = branchesRes.data
         

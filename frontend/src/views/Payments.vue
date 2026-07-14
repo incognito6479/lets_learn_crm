@@ -235,9 +235,6 @@ export default {
       // Sort with last changed/newest rows (highest ID) first
       list.sort((a, b) => b.id - a.id)
       
-      if (this.selectedGroup) {
-        list = list.filter(p => p.group === this.selectedGroup)
-      }
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase().trim()
         list = list.filter(p => {
@@ -259,6 +256,11 @@ export default {
       return this.formatPrice(sum)
     }
   },
+  watch: {
+    selectedGroup() {
+      this.fetchPayments()
+    }
+  },
   mounted() {
     this.fetchData()
   },
@@ -267,20 +269,37 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [paymentsRes, studentsRes, groupsRes, usersRes] = await Promise.all([
-          axios.get('/api/payments/'),
+        const [studentsRes, groupsRes, usersRes] = await Promise.all([
           axios.get('/api/students/'),
           axios.get('/api/groups/'),
           axios.get('/api/users/')
         ])
-        this.payments = paymentsRes.data
         this.students = studentsRes.data
         this.groups = groupsRes.data
         this.users = usersRes.data
+
+        await this.fetchPayments()
+      } catch (err) {
+        console.error('Error fetching payments data:', err)
+        this.error = this.$t('stats.api_error')
+      } finally {
         this.loading = false
+      }
+    },
+    async fetchPayments() {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        if (this.selectedGroup) {
+          params.group = this.selectedGroup
+        }
+        const res = await axios.get('/api/payments/', { params })
+        this.payments = res.data
       } catch (err) {
         console.error('Error fetching payments:', err)
         this.error = this.$t('stats.api_error')
+      } finally {
         this.loading = false
       }
     },

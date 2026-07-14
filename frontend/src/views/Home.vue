@@ -193,22 +193,26 @@ export default {
       this.error = null
 
       try {
-        const [studentsRes, usersRes, enrollmentsRes, groupsRes, paymentsRes, leadsRes] = await Promise.all([
-          axios.get('/api/students/'),
-          axios.get('/api/users/'),
-          axios.get('/api/enrollments/'),
-          axios.get('/api/groups/'),
-          axios.get('/api/payments/'),
-          axios.get('/api/leads/')
+        const [
+          teachersRes,
+          enrolledRes,
+          debtEnrollmentsRes,
+          groupsRes,
+          paymentsRes,
+          leadsRes
+        ] = await Promise.all([
+          axios.get('/api/users/', { params: { role: 'teacher', is_active: 'true' } }),
+          axios.get('/api/enrollments/', { params: { status: 'enrolled' } }),
+          axios.get('/api/enrollments/', { params: { status: 'enrolled', payment_status: 'debt' } }),
+          axios.get('/api/groups/', { params: { status: 'ongoing' } }),
+          axios.get('/api/payments/', { params: { status: 'accepted', is_active: 'true' } }),
+          axios.get('/api/leads/', { params: { status: 'pending' } })
         ])
 
-        this.studentCount = studentsRes.data.filter(s => s.is_active).length
-        console.log(studentsRes.data)
-        this.teacherCount = usersRes.data.filter(u => u.role === 'teacher' && u.is_active).length
-        this.pendingLeadsCount = leadsRes.data.filter(l => l.status === 'pending').length
-        
-        // Calculate active ongoing groups
-        this.activeGroupsCount = groupsRes.data.filter(g => g.status === 'ongoing').length
+        this.studentCount = enrolledRes.data.length
+        this.teacherCount = teachersRes.data.length
+        this.pendingLeadsCount = leadsRes.data.length
+        this.activeGroupsCount = groupsRes.data.length
         
         // Calculate current month income
         const now = new Date()
@@ -216,7 +220,7 @@ export default {
         const currentMonth = now.getMonth()
         const currentMonthPayments = paymentsRes.data.filter(p => {
           const pDate = new Date(p.payment_date)
-          return p.is_active && p.status === 'accepted' && pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
+          return pDate.getFullYear() === currentYear && pDate.getMonth() === currentMonth
         })
         
         // Only student tuition payments go to currentMonthIncome
@@ -227,19 +231,14 @@ export default {
         const currentMonthTeacherPayments = currentMonthPayments.filter(p => p.student === null && p.teacher !== null)
         this.currentMonthTeacherPaid = currentMonthTeacherPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
 
-        // Filter active debt enrollments
-        const activeDebtEnrollments = enrollmentsRes.data.filter(
-          e => e.status === 'enrolled' && e.payment_status === 'debt'
-        )
-        
         // Calculate total outstanding debt
-        this.totalDebtAmount = activeDebtEnrollments.reduce(
+        this.totalDebtAmount = debtEnrollmentsRes.data.reduce(
           (sum, e) => sum + parseFloat(e.debt_amount || 0),
           0
         )
         
         // Calculate unique students in debt
-        const uniqueDebtStudents = new Set(activeDebtEnrollments.map(e => e.student))
+        const uniqueDebtStudents = new Set(debtEnrollmentsRes.data.map(e => e.student))
         this.debtStudentsCount = uniqueDebtStudents.size
         
         this.loading = false

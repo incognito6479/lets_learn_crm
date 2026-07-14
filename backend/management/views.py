@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
+from rest_framework.filters import BaseFilterBackend
 from .models import Branch, User, Student, Room, Course, Group, Enrollment, Payment, Grade, Absence, Notification, Lead
 from .serializers import (
     BranchSerializer, UserSerializer, StudentSerializer, 
@@ -17,7 +18,46 @@ from django.db import transaction
 from django.utils import timezone
 
 
+class ParameterFilterBackend(BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        model = queryset.model
+        model_fields = set()
+        for field in model._meta.get_fields():
+            if field.concrete or field.many_to_many:
+                model_fields.add(field.name)
+                if hasattr(field, 'attname'):
+                    model_fields.add(field.attname)
+
+        filter_kwargs = {}
+        for param in request.query_params:
+            if param in model_fields:
+                values = request.query_params.getlist(param)
+                if len(values) == 1 and ',' in values[0]:
+                    values = [v.strip() for v in values[0].split(',')]
+
+                processed_values = []
+                for val in values:
+                    if val == '':
+                        continue
+                    if val.lower() == 'true':
+                        processed_values.append(True)
+                    elif val.lower() == 'false':
+                        processed_values.append(False)
+                    elif val.lower() in ('null', 'none'):
+                        processed_values.append(None)
+                    else:
+                        processed_values.append(val)
+
+                if len(processed_values) > 1:
+                    filter_kwargs[f"{param}__in"] = processed_values
+                elif len(processed_values) == 1:
+                    filter_kwargs[param] = processed_values[0]
+
+        return queryset.filter(**filter_kwargs)
+
+
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
+    filter_backends = [ParameterFilterBackend]
     def get_queryset(self):
         return self.queryset.filter(is_active=True)
 
@@ -180,6 +220,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     permission_classes = [IsCashierOrAdminOrCEOOrSuperuser]
+    filter_backends = [ParameterFilterBackend]
 
     def get_permissions(self):
         if self.action == 'confirm_payment':
@@ -295,6 +336,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [ParameterFilterBackend]
 
     def get_queryset(self):
         user = self.request.user

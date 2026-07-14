@@ -454,14 +454,7 @@ export default {
   },
   computed: {
     filteredLeads() {
-      let list = this.leads
-      if (this.filterCourse) {
-        list = list.filter(l => l.course === parseInt(this.filterCourse))
-      }
-      if (this.filterStatus) {
-        list = list.filter(l => l.status === this.filterStatus)
-      }
-      return list
+      return this.leads
     },
     isAllSelected() {
       const activeLeads = this.filteredLeads.filter(l => l.status !== 'converted')
@@ -495,6 +488,14 @@ export default {
       return null
     }
   },
+  watch: {
+    filterCourse() {
+      this.fetchLeads()
+    },
+    filterStatus() {
+      this.fetchLeads()
+    }
+  },
   mounted() {
     this.fetchData()
   },
@@ -503,20 +504,17 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [leadsRes, coursesRes, branchesRes, usersRes, roomsRes] = await Promise.all([
-          axios.get('/api/leads/'),
+        const [coursesRes, branchesRes, usersRes, roomsRes] = await Promise.all([
           axios.get('/api/courses/'),
           axios.get('/api/branches/'),
-          axios.get('/api/users/'),
+          axios.get('/api/users/', { params: { role: 'teacher', is_active: 'true' } }),
           axios.get('/api/rooms/')
         ])
 
-        this.leads = leadsRes.data
         this.courses = coursesRes.data
         this.branches = branchesRes.data
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher' && u.is_active)
+        this.teachers = usersRes.data
         this.rooms = roomsRes.data
-        // console.log(this.rooms)
 
         if (this.userId) {
           try {
@@ -526,8 +524,30 @@ export default {
             console.error('Error fetching user profile branch:', profileErr)
           }
         }
+
+        await this.fetchLeads()
       } catch (err) {
         console.error('Error loading leads page data:', err)
+        this.error = this.$t('stats.api_error')
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchLeads() {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        if (this.filterCourse) {
+          params.course = this.filterCourse
+        }
+        if (this.filterStatus) {
+          params.status = this.filterStatus
+        }
+        const res = await axios.get('/api/leads/', { params })
+        this.leads = res.data
+      } catch (err) {
+        console.error('Error fetching leads:', err)
         this.error = this.$t('stats.api_error')
       } finally {
         this.loading = false

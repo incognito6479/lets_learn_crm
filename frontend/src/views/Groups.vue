@@ -462,16 +462,6 @@ export default {
         list = list.filter(g => g.name && g.name.toLowerCase().includes(query))
       }
       
-      // Filter by selected branch
-      if (this.selectedBranch) {
-        list = list.filter(g => g.branch === this.selectedBranch)
-      }
-      
-      // Filter by selected course
-      if (this.selectedCourse) {
-        list = list.filter(g => g.course === this.selectedCourse)
-      }
-      
       return list
     },
     filteredRooms() {
@@ -483,6 +473,14 @@ export default {
       return [cy - 2, cy - 1, cy, cy + 1, cy + 2]
     }
   },
+  watch: {
+    selectedBranch() {
+      this.fetchGroups()
+    },
+    selectedCourse() {
+      this.fetchGroups()
+    }
+  },
   mounted() {
     this.fetchData()
   },
@@ -491,25 +489,46 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const [groupsRes, coursesRes, usersRes, roomsRes, branchesRes] = await Promise.all([
-          axios.get('/api/groups/'),
+        const [coursesRes, usersRes, roomsRes, branchesRes] = await Promise.all([
           axios.get('/api/courses/'),
-          axios.get('/api/users/'),
+          axios.get('/api/users/', { params: { role: 'teacher' } }),
           axios.get('/api/rooms/'),
           axios.get('/api/branches/')
         ])
         
-        let groupsData = groupsRes.data
+        this.courses = coursesRes.data
+        this.teachers = usersRes.data
+        this.rooms = roomsRes.data
+        this.branches = branchesRes.data
+
+        await this.fetchGroups()
+      } catch (err) {
+        console.error('Error fetching groups data:', err)
+        this.error = 'Unable to connect to backend API. Please check server status.'
+      } finally {
+        this.loading = false
+      }
+    },
+    async fetchGroups() {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        if (this.selectedBranch) {
+          params.branch = this.selectedBranch
+        }
+        if (this.selectedCourse) {
+          params.course = this.selectedCourse
+        }
+        const res = await axios.get('/api/groups/', { params })
+        
+        let groupsData = res.data
         if (this.userRole === 'teacher' && this.userId) {
           groupsData = groupsData.filter(g => g.teacher === this.userId)
         }
         this.groups = groupsData
-        this.courses = coursesRes.data
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher')
-        this.rooms = roomsRes.data
-        this.branches = branchesRes.data
       } catch (err) {
-        console.error('Error fetching groups data:', err)
+        console.error('Error fetching groups:', err)
         this.error = 'Unable to connect to backend API. Please check server status.'
       } finally {
         this.loading = false

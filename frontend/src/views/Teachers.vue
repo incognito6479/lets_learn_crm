@@ -246,12 +246,11 @@ export default {
 
       try {
         const [usersRes, branchesRes] = await Promise.all([
-          axios.get(`/api/users/`),
+          axios.get(`/api/users/`, { params: { role: 'teacher' } }),
           axios.get(`/api/branches/`)
         ])
         this.branches = branchesRes.data
-        // Filter users who are teachers
-        this.teachers = usersRes.data.filter(u => u.role === 'teacher')
+        this.teachers = usersRes.data
         this.loading = false
       } catch (err) {
         console.error('Error fetching data:', err)
