@@ -263,7 +263,7 @@ export default {
 .dashboard-home {
   font-family: 'Outfit', sans-serif;
   padding: 2.5rem;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   text-align: left;
   box-sizing: border-box;

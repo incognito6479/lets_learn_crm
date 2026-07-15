@@ -5,3 +5,4 @@ backend/.venv/
 nginx/app.conf
 .agents
 SYSTEM_ARCHITECTURE.md
+backend/celerybeat-schedule

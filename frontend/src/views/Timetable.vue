@@ -379,7 +379,7 @@ export default {
 @import '../assets/views.css';
 
 .timetable-view-container {
-  max-width: 1280px;
+  max-width: 100%;
 }
 
 .timetable-wrapper {
