@@ -43,16 +43,38 @@ def run_import_excel(excel_file, month, year, price):
         for sheet in wb.worksheets:
             sheet_name = sheet.title
             
+            # Check for () in sheet name for group price.
+            # E.g. "(750)" -> 750000 Uzbek sum, "(750000)" -> 750000.
+            # If not given, leave it as group_price from arguments.
+            match_price = re.search(r'\(([^)]+)\)', sheet_name)
+            if match_price:
+                price_str = match_price.group(1).strip()
+                price_digits = "".join(c for c in price_str if c.isdigit())
+                if price_digits:
+                    parsed_val = int(price_digits)
+                    if parsed_val < 1000:
+                        parsed_val *= 1000
+                    sheet_group_price = Decimal(str(parsed_val))
+                else:
+                    sheet_group_price = group_price
+            else:
+                sheet_group_price = group_price
+
+            # Clean sheet name by removing parentheses and their content for schedule/time parsing
+            clean_sheet_name = re.sub(r'\(.*?\)', '', sheet_name)
+
             # Determine group schedule and starts_at from sheet name
-            # E.g. "Tues 900" or "Mon 1030"
-            sheet_lower = sheet_name.lower()
-            if 'tue' in sheet_lower:
+            # E.g. "Tues 900" or "Mon 1030" or "Everyday 900"
+            sheet_lower = clean_sheet_name.lower()
+            if 'everyday' in sheet_lower:
+                group_days_at = 'Everyday'
+            elif 'tue' in sheet_lower:
                 group_days_at = 'Tue-Thur-Sat'
             else:
                 group_days_at = 'Mon-Wed-Fri'
                 
             # Extract digits for start time
-            digits = "".join(c for c in sheet_name if c.isdigit())
+            digits = "".join(c for c in clean_sheet_name if c.isdigit())
             if digits == "900" or digits == "9":
                 starts_at = datetime.time(9, 0)
             elif digits == "1030":
@@ -75,7 +97,7 @@ def run_import_excel(excel_file, month, year, price):
                 defaults={
                     'teacher': teacher,
                     'branch': branch,
-                    'price': group_price,
+                    'price': sheet_group_price,
                     'starts_at': starts_at,
                     'duration': 90,
                     'started_at': timezone.localdate(),
@@ -211,7 +233,7 @@ def run_import_excel(excel_file, month, year, price):
                         
                         next_billing_day = min(enrollment_date.day, 28)
                         next_billing_date = datetime.date(next_year, next_month, next_billing_day)
-                        next_pay_amount = overpaid_val if overpaid_val > 0 else float(group_price)
+                        next_pay_amount = overpaid_val if overpaid_val > 0 else float(sheet_group_price)
                         
                         next_desc = f"Imported next month payment from Excel: {next_month}/{next_year}"
                         Payment.objects.create(
